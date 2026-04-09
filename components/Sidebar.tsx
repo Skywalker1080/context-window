@@ -1,10 +1,22 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { motion } from "framer-motion";
-import { Inbox, Library, BarChart3, LogOut, User, Layers } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Inbox,
+  Library,
+  BarChart3,
+  LogOut,
+  User,
+  Layers,
+  Download,
+  Share,
+  Plus,
+  X,
+} from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLinks } from "@/contexts/LinksContext";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 
 type View = "inbox" | "library" | "insights";
 
@@ -16,6 +28,8 @@ interface SidebarProps {
 export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const { user, signOut } = useAuth();
   const { inboxLinks, insights } = useLinks();
+  const { canInstall, isIOS, showIOSGuide, install, dismissIOSGuide } =
+    usePWAInstall();
 
   const navItems: {
     id: View;
@@ -104,6 +118,113 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Install App CTA */}
+      <AnimatePresence>
+        {canInstall && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            className="px-3 mb-3"
+          >
+            <button
+              onClick={install}
+              className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl
+                         bg-gradient-to-r from-accent-violet/15 to-accent-cyan/15
+                         border border-accent-violet/20
+                         text-text-primary text-sm font-medium
+                         hover:from-accent-violet/25 hover:to-accent-cyan/25
+                         hover:border-accent-violet/40
+                         transition-all duration-300 group"
+            >
+              <div className="p-1.5 rounded-lg bg-accent-violet/20 group-hover:bg-accent-violet/30 transition-colors">
+                <Download size={14} className="text-accent-violet" />
+              </div>
+              <span>Install App</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* iOS Install Guide Overlay */}
+      <AnimatePresence>
+        {showIOSGuide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-end"
+          >
+            <div
+              className="absolute inset-0 bg-void/70 backdrop-blur-sm"
+              onClick={dismissIOSGuide}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative z-10 w-full glass-strong rounded-t-2xl border-t border-border-subtle p-5"
+            >
+              <button
+                onClick={dismissIOSGuide}
+                className="absolute top-3 right-3 p-1 rounded-lg text-text-ghost hover:text-text-primary
+                           hover:bg-surface-overlay transition-colors"
+              >
+                <X size={16} />
+              </button>
+
+              <h3 className="text-sm font-bold text-text-primary mb-4">
+                Install on iOS
+              </h3>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-cyan/15 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-accent-cyan">
+                      1
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    Tap the{" "}
+                    <Share
+                      size={12}
+                      className="inline text-accent-cyan align-text-bottom"
+                    />{" "}
+                    <strong>Share</strong> button in Safari&apos;s toolbar
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-cyan/15 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-accent-cyan">
+                      2
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    Scroll down and tap{" "}
+                    <Plus
+                      size={12}
+                      className="inline text-accent-cyan align-text-bottom"
+                    />{" "}
+                    <strong>Add to Home Screen</strong>
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-cyan/15 flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-accent-cyan">
+                      3
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-secondary leading-relaxed">
+                    Tap <strong>Add</strong> to install
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* User */}
       <div className="mt-auto pt-4 border-t border-border-subtle">
