@@ -120,7 +120,7 @@ export function CaptureBar() {
                 : "Paste a URL to capture... (press /)"
             }
             disabled={inboxFull || isSubmitting}
-            className="flex-1 bg-transparent text-text-primary placeholder-text-ghost
+            className="flex-1 min-w-0 w-full bg-transparent text-text-primary placeholder-text-ghost
                        outline-none text-sm font-mono disabled:opacity-50"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

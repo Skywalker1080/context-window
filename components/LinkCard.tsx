@@ -95,7 +95,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               className="group/link flex items-center gap-1.5 text-sm font-medium
                          text-text-primary hover:text-accent-violet transition-colors"
             >
-              <span className="truncate">{link.title || link.url}</span>
+              <span className="truncate min-w-0">{link.title || link.url}</span>
               <ExternalLink
                 size={12}
                 className="flex-shrink-0 opacity-0 group-hover/link:opacity-100
@@ -212,7 +212,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
                     }
                   }}
                   placeholder="#add-tag"
-                  className="flex-1 bg-surface-raised/50 border border-border-subtle rounded-lg
+                  className="flex-1 min-w-0 w-full bg-surface-raised/50 border border-border-subtle rounded-lg
                              px-3 py-1.5 text-xs text-text-secondary placeholder-text-ghost
                              outline-none focus:border-accent-violet/30 transition-colors font-mono"
                 />
@@ -230,7 +230,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
         )}
 
         {/* Actions */}
-        <div className="mt-3 pl-8 flex items-center gap-2">
+        <div className="mt-3 pl-8 flex flex-wrap items-center gap-2">
           {mode === "inbox" ? (
             <>
               <button

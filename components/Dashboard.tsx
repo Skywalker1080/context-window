@@ -80,7 +80,7 @@ export function Dashboard() {
       </AnimatePresence>
 
       {/* Main content */}
-      <main className="flex-1 lg:ml-56 relative z-10">
+      <main className="flex-1 lg:ml-56 relative z-10 min-w-0 w-full">
         <div className="max-w-3xl mx-auto px-4 lg:px-8 pt-20 lg:pt-8 pb-16">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
