@@ -51,14 +51,13 @@ const LinksContext = createContext<LinksContextValue | null>(null);
 const INBOX_LIMIT = 5;
 
 export const DEFAULT_CATEGORIES = [
-  { name: "General", icon: "📌", color: "#7c3aed" },
-  { name: "GitHub", icon: "🐙", color: "#06b6d4" },
-  { name: "Research", icon: "🔬", color: "#10b981" },
-  { name: "Video", icon: "🎬", color: "#f59e0b" },
-  { name: "Social", icon: "💬", color: "#f43f5e" },
-  { name: "News", icon: "📰", color: "#8b5cf6" },
-  { name: "Tools", icon: "🛠️", color: "#06b6d4" },
-  { name: "Design", icon: "🎨", color: "#ec4899" },
+  { name: "Youtube", icon: "▶️", color: "var(--color-accent-rose)" },
+  { name: "Documentation", icon: "📚", color: "var(--color-accent-emerald)" },
+  { name: "Github", icon: "🐙", color: "var(--color-text-secondary)" },
+  { name: "Twitter (X)", icon: "🐦", color: "var(--color-accent-cyan)" },
+  { name: "Reddit", icon: "👽", color: "var(--color-accent-amber)" },
+  { name: "Tool", icon: "🛠️", color: "var(--color-accent-violet)" },
+  { name: "Website", icon: "🌐", color: "var(--color-text-muted)" },
 ];
 
 async function fetchUrlMetadata(url: string) {
@@ -67,6 +66,26 @@ async function fetchUrlMetadata(url: string) {
     description: "",
     favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`,
   };
+
+  // Special handler for YouTube urls because they block bots like microlink
+  if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    try {
+      const response = await fetch(
+        `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          title: data.title || fallback.title,
+          description: data.author_name || "",
+          favicon: fallback.favicon,
+        };
+      }
+    } catch {
+      // fail silently and fallback to microlink
+    }
+  }
+
   try {
     const response = await fetch(
       `https://api.microlink.io/?url=${encodeURIComponent(url)}`
@@ -85,33 +104,19 @@ async function fetchUrlMetadata(url: string) {
 
 function categorizeUrl(url: string): string {
   const hostname = new URL(url).hostname.toLowerCase();
+  
+  if (hostname.includes("youtube.com") || hostname.includes("youtu.be"))
+    return "Youtube";
   if (hostname.includes("github.com") || hostname.includes("gitlab.com"))
-    return "GitHub";
-  if (
-    hostname.includes("youtube.com") ||
-    hostname.includes("youtu.be") ||
-    hostname.includes("vimeo.com")
-  )
-    return "Video";
-  if (
-    hostname.includes("twitter.com") ||
-    hostname.includes("x.com") ||
-    hostname.includes("reddit.com")
-  )
-    return "Social";
-  if (
-    hostname.includes("arxiv.org") ||
-    hostname.includes("scholar.google") ||
-    hostname.includes("researchgate.net")
-  )
-    return "Research";
-  if (
-    hostname.includes("figma.com") ||
-    hostname.includes("dribbble.com") ||
-    hostname.includes("behance.net")
-  )
-    return "Design";
-  return "General";
+    return "Github";
+  if (hostname.includes("twitter.com") || hostname.includes("x.com"))
+    return "Twitter (X)";
+  if (hostname.includes("reddit.com"))
+    return "Reddit";
+  if (hostname.includes("docs.") || url.includes("/docs") || url.includes("/documentation"))
+    return "Documentation";
+
+  return "Website";
 }
 
 export function LinksProvider({ children }: { children: ReactNode }) {
@@ -151,7 +156,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
             favicon: data.favicon || "",
             note: data.note || "",
             status: data.status || "inbox",
-            category: data.category || "General",
+            category: data.category || "Website",
             tags: data.tags || [],
             createdAt:
               data.createdAt instanceof Timestamp

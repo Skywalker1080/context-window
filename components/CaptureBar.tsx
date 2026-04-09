@@ -78,9 +78,8 @@ export function CaptureBar() {
           className={`
             relative flex items-center gap-3 rounded-xl px-4 py-3
             glass-strong transition-all duration-300
-            ${inboxFull ? "border-amber-500/30" : ""}
-            ${success ? "border-emerald-500/50 glow-cyan" : ""}
-            focus-within:glow-violet focus-within:border-violet-500/30
+            ${inboxFull ? "border-accent-amber/30" : "border-transparent"}
+            ${success ? "border-accent-emerald/50" : ""}
           `}
         >
           <div className="flex-shrink-0">
@@ -91,7 +90,7 @@ export function CaptureBar() {
                   initial={{ scale: 0, rotate: -180 }}
                   animate={{ scale: 1, rotate: 0 }}
                   exit={{ scale: 0 }}
-                  className="text-emerald-400"
+                  className="text-accent-emerald"
                 >
                   <Zap size={18} />
                 </motion.div>
@@ -144,7 +143,7 @@ export function CaptureBar() {
 
             <div
               className={`px-2 py-0.5 rounded-md text-xs font-mono font-semibold
-                ${inboxFull ? "bg-amber-500/20 text-amber-400" : "bg-accent-violet-soft text-accent-violet"}`}
+                ${inboxFull ? "bg-accent-amber-soft text-accent-amber" : "bg-accent-violet-soft text-accent-violet"}`}
             >
               {inboxLinks.length}/5
             </div>

@@ -60,7 +60,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
     <div className="h-full flex flex-col py-6 px-3">
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 mb-8">
-        <div className="p-2 rounded-xl bg-gradient-to-br from-accent-violet to-accent-cyan">
+        <div className="p-2 rounded-xl bg-accent-violet">
           <Layers size={20} className="text-white" />
         </div>
         <div>
@@ -92,7 +92,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
               {isActive && (
                 <motion.div
                   layoutId="sidebar-active"
-                  className="absolute inset-0 glass rounded-xl glow-violet"
+                  className="absolute inset-0 glass rounded-xl"
                   transition={{
                     type: "spring",
                     damping: 25,
@@ -131,11 +131,9 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
             <button
               onClick={install}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl
-                         bg-gradient-to-r from-accent-violet/15 to-accent-cyan/15
-                         border border-accent-violet/20
+                         bg-accent-violet/10 border border-accent-violet/20
                          text-text-primary text-sm font-medium
-                         hover:from-accent-violet/25 hover:to-accent-cyan/25
-                         hover:border-accent-violet/40
+                         hover:bg-accent-violet/20 hover:border-accent-violet/40
                          transition-all duration-300 group"
             >
               <div className="p-1.5 rounded-lg bg-accent-violet/20 group-hover:bg-accent-violet/30 transition-colors">

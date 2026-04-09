@@ -219,7 +219,7 @@ export function InsightsPanel() {
                            bg-surface-overlay text-text-muted text-xs hover:text-accent-violet
                            hover:bg-accent-violet-soft transition-all duration-200 cursor-default"
               >
-                #{tag.name}
+                {tag.name}
                 <span className="text-[10px] text-text-ghost font-mono">
                   {tag.count}
                 </span>

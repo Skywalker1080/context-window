@@ -70,17 +70,8 @@ export function LinkCard({ link, mode }: LinkCardProps) {
       exit={{ opacity: 0, scale: 0.9, y: -10, transition: { duration: 0.3 } }}
       transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
       className="group relative glass rounded-xl overflow-hidden
-                 hover:border-border-strong transition-all duration-300"
+                 transition-all duration-300"
     >
-      <div
-        className="absolute top-0 left-0 w-1 h-full rounded-l-xl"
-        style={{
-          backgroundColor:
-            DEFAULT_CATEGORIES.find((c) => c.name === link.category)?.color ||
-            "#7c3aed",
-        }}
-      />
-
       <div className="pl-5 pr-4 py-4">
         {/* Header */}
         <div className="flex items-start gap-3">
@@ -155,7 +146,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
                            bg-accent-violet-soft text-accent-violet text-[10px] font-medium"
               >
-                #{tag}
+                {tag}
                 {(editingTags || mode === "inbox") && (
                   <button
                     onClick={() => removeTag(tag)}
@@ -245,7 +236,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               <button
                 onClick={() => handleTriage("library")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25
+                           bg-accent-emerald-soft text-accent-emerald hover:bg-accent-emerald/25
                            transition-all duration-200"
               >
                 <BookmarkCheck size={14} />
@@ -254,7 +245,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               <button
                 onClick={() => handleTriage("archived")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-surface-overlay text-text-muted hover:text-amber-400 hover:bg-amber-500/15
+                           bg-surface-overlay text-text-muted hover:text-accent-amber hover:bg-accent-amber-soft
                            transition-all duration-200"
               >
                 <Archive size={14} />
@@ -263,7 +254,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               <button
                 onClick={() => handleTriage("deleted")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-surface-overlay text-text-muted hover:text-rose-400 hover:bg-rose-500/15
+                           bg-surface-overlay text-text-muted hover:text-accent-rose hover:bg-accent-rose-soft
                            transition-all duration-200"
               >
                 <Trash2 size={14} />
