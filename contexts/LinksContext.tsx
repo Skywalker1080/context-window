@@ -221,8 +221,8 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         status: "inbox" as LinkStatus,
         category,
         tags: [],
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
         userId: user.uid,
       });
 
@@ -256,7 +256,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     ) => {
       const updates: Record<string, unknown> = {
         status,
-        updatedAt: serverTimestamp(),
+        updatedAt: Timestamp.now(),
       };
       if (category) updates.category = category;
       if (tags) updates.tags = tags;
@@ -271,7 +271,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       void _id;
       await updateDoc(doc(db, "links", id), {
         ...rest,
-        updatedAt: serverTimestamp(),
+        updatedAt: Timestamp.now(),
       });
     },
     []
