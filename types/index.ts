@@ -21,7 +21,6 @@ export interface Category {
   id: string;
   name: string;
   icon: string;
-  color: string;
   count: number;
 }
 
@@ -44,7 +43,7 @@ export interface InsightData {
   inboxCount: number;
   libraryCount: number;
   archivedCount: number;
-  categoryBreakdown: { name: string; count: number}[];
+  categoryBreakdown: { name: string; count: number }[];
   recentActivity: { date: string; captured: number; processed: number }[];
   topTags: { name: string; count: number }[];
 }

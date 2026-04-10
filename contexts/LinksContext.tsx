@@ -51,15 +51,15 @@ const LinksContext = createContext<LinksContextValue | null>(null);
 const INBOX_LIMIT = 5;
 
 export const DEFAULT_CATEGORIES = [
-  { name: "Youtube", icon: ""},
-  { name: "Documentation", icon: ""},
-  { name: "Github", icon: ""},
-  { name: "Twitter (X)", icon: ""},
-  { name: "Reddit", icon: ""},
-  { name: "Substack", icon: ""},
-  { name: "Linkedin", icon: ""},
-  { name: "Tool", icon: ""},
-  { name: "Website", icon: ""},
+  { name: "Youtube", icon: "" },
+  { name: "Documentation", icon: "" },
+  { name: "Github", icon: "" },
+  { name: "Twitter (X)", icon: "" },
+  { name: "Reddit", icon: "" },
+  { name: "Substack", icon: "" },
+  { name: "Linkedin", icon: "" },
+  { name: "Tool", icon: "" },
+  { name: "Website", icon: "" },
 ];
 
 async function fetchUrlMetadata(url: string) {

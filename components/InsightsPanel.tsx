@@ -185,8 +185,7 @@ export function InsightsPanel() {
                         duration: 0.6,
                         delay: i * 0.05,
                       }}
-                      className="h-full rounded-full"
-                      style={{ backgroundColor: cat.color }}
+                      className="h-full rounded-full bg-accent-violet"
                     />
                   </div>
                   <span className="text-xs text-text-ghost font-mono w-6 text-right">
