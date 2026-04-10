@@ -1,7 +1,7 @@
 // PWA Service Worker
 // Handles caching and offline support
 
-const CACHE_NAME = "context-window-v1";
+const CACHE_NAME = "context-window-v2";
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -34,7 +34,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets
+  // Network-first for HTML navigation requests to ensure latest UI updates
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => {
+          // Offline fallback
+          return caches.match(event.request).then((cached) => cached || caches.match("/"));
+        })
+    );
+    return;
+  }
+
+  // Cache-first for static assets (Next.js chunks, images)
   event.respondWith(
     caches.match(event.request).then((cached) => {
       return (
