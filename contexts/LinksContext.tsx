@@ -51,13 +51,15 @@ const LinksContext = createContext<LinksContextValue | null>(null);
 const INBOX_LIMIT = 5;
 
 export const DEFAULT_CATEGORIES = [
-  { name: "Youtube", icon: "▶️", color: "var(--color-accent-rose)" },
-  { name: "Documentation", icon: "📚", color: "var(--color-accent-emerald)" },
-  { name: "Github", icon: "🐙", color: "var(--color-text-secondary)" },
-  { name: "Twitter (X)", icon: "🐦", color: "var(--color-accent-cyan)" },
-  { name: "Reddit", icon: "👽", color: "var(--color-accent-amber)" },
-  { name: "Tool", icon: "🛠️", color: "var(--color-accent-violet)" },
-  { name: "Website", icon: "🌐", color: "var(--color-text-muted)" },
+  { name: "Youtube", icon: ""},
+  { name: "Documentation", icon: ""},
+  { name: "Github", icon: ""},
+  { name: "Twitter (X)", icon: ""},
+  { name: "Reddit", icon: ""},
+  { name: "Substack", icon: ""},
+  { name: "Linkedin", icon: ""},
+  { name: "Tool", icon: ""},
+  { name: "Website", icon: ""},
 ];
 
 async function fetchUrlMetadata(url: string) {
@@ -113,6 +115,8 @@ function categorizeUrl(url: string): string {
     return "Twitter (X)";
   if (hostname.includes("reddit.com"))
     return "Reddit";
+  if (hostname.includes("substack.com"))
+    return "Substack";
   if (hostname.includes("docs.") || url.includes("/docs") || url.includes("/documentation"))
     return "Documentation";
 
@@ -301,7 +305,6 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       count: links.filter(
         (l) => l.category === cat.name && l.status === "library"
       ).length,
-      color: cat.color,
     })).filter((c) => c.count > 0),
     recentActivity: (() => {
       const days = 7;

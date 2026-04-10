@@ -113,7 +113,11 @@ export function CaptureBar() {
             id="capture-input"
             type="text"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value;
+              setUrl(val);
+              if (val.trim() && !showNote) setShowNote(true);
+            }}
             placeholder={
               inboxFull
                 ? "Inbox full — triage links first"

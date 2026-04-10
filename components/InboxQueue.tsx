@@ -22,8 +22,8 @@ export function InboxQueue() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent-cyan-soft">
-            <Inbox size={18} className="text-accent-cyan" />
+          <div className="p-2 rounded-lg bg-accent-violet-soft">
+            <Inbox size={18} className="text-accent-violet" />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-text-primary">
@@ -43,7 +43,7 @@ export function InboxQueue() {
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/15 text-amber-400"
             >
               <AlertTriangle size={12} />
-              <span className="text-[10px] font-semibold">FULL</span>
+              <span className="text-[10px] font-semibold">CONTEXT WINDOW FULL</span>
             </motion.div>
           )}
           <div className="flex gap-1">
@@ -54,7 +54,7 @@ export function InboxQueue() {
                   i < inboxLinks.length
                     ? inboxFull
                       ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
-                      : "bg-accent-cyan shadow-[0_0_8px_rgba(6,182,212,0.3)]"
+                      : "bg-accent-violet shadow-[0_0_8px_rgba(171,85,61,0.3)]"
                     : "bg-border-subtle"
                 }`}
               />
@@ -71,7 +71,7 @@ export function InboxQueue() {
             className="flex flex-col items-center justify-center py-12 text-center"
           >
             <div className="p-4 rounded-2xl bg-surface-raised/50 mb-4">
-              <Zap size={28} className="text-accent-cyan" />
+              <Zap size={28} className="text-accent-violet" />
             </div>
             <p className="text-sm text-text-secondary font-medium">
               Inbox clear

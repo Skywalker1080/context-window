@@ -17,7 +17,7 @@ export interface LinkItem {
   userId: string;
 }
 
-export interface Category {
+export interface Category { 
   id: string;
   name: string;
   icon: string;
@@ -44,7 +44,7 @@ export interface InsightData {
   inboxCount: number;
   libraryCount: number;
   archivedCount: number;
-  categoryBreakdown: { name: string; count: number; color: string }[];
+  categoryBreakdown: { name: string; count: number}[];
   recentActivity: { date: string; captured: number; processed: number }[];
   topTags: { name: string; count: number }[];
 }

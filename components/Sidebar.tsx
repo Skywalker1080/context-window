@@ -14,6 +14,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLinks } from "@/contexts/LinksContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
@@ -60,8 +61,14 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
     <div className="h-full flex flex-col py-6 px-3">
       {/* Logo */}
       <div className="flex items-center gap-3 px-3 mb-8">
-        <div className="p-2 rounded-xl bg-accent-violet">
-          <Layers size={20} className="text-white" />
+        <div className="p-2 rounded-xl bg-accent-violet flex-shrink-0">
+          <Image 
+            src="/context_window.svg" 
+            alt="Context Window Logo" 
+            width={24} 
+            height={24}
+            priority
+          />
         </div>
         <div>
           <h1 className="text-sm font-bold text-text-primary tracking-tight">
