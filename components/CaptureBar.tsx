@@ -8,6 +8,8 @@ import {
   AlertTriangle,
   MessageSquare,
   Send,
+  X,
+  Check,
 } from "lucide-react";
 import { useLinks } from "@/contexts/LinksContext";
 
@@ -15,6 +17,8 @@ export function CaptureBar() {
   const { addLink, inboxFull, inboxLinks } = useLinks();
   const [url, setUrl] = useState("");
   const [note, setNote] = useState("");
+  const [localTags, setLocalTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [showNote, setShowNote] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,6 +41,18 @@ export function CaptureBar() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  const addTag = useCallback(() => {
+    const tag = tagInput.trim().toLowerCase().replace(/^#/, "");
+    if (tag && !localTags.includes(tag)) {
+      setLocalTags([...localTags, tag]);
+    }
+    setTagInput("");
+  }, [tagInput, localTags]);
+
+  const removeTag = useCallback((tag: string) => {
+    setLocalTags((prev) => prev.filter((t) => t !== tag));
+  }, []);
+
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
       e?.preventDefault();
@@ -54,9 +70,11 @@ export function CaptureBar() {
 
       try {
         setIsSubmitting(true);
-        await addLink(finalUrl, note);
+        await addLink(finalUrl, note, localTags);
         setUrl("");
         setNote("");
+        setLocalTags([]);
+        setTagInput("");
         setShowNote(false);
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
@@ -68,7 +86,7 @@ export function CaptureBar() {
         setIsSubmitting(false);
       }
     },
-    [url, note, addLink]
+    [url, note, localTags, addLink]
   );
 
   return (
@@ -179,11 +197,57 @@ export function CaptureBar() {
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Why are you saving this?"
                   className="w-full bg-surface-raised/50 border border-border-subtle rounded-lg
-                             px-3 py-2 text-sm text-text-secondary placeholder-text-ghost
+                             px-3 py-2 text-sm font-mono text-text-secondary placeholder-text-ghost
                              outline-none resize-none focus:border-accent-violet/30
                              transition-colors duration-200"
                   rows={2}
                 />
+                
+                <div className="mt-3 bg-surface-raised/50 border border-border-subtle rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      placeholder="Add tags"
+                      className="flex-1 bg-transparent text-sm text-text-primary placeholder-text-ghost border-none outline-none font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={addTag}
+                      disabled={!tagInput.trim()}
+                      className="p-1 rounded-md text-accent-violet hover:bg-accent-violet-soft disabled:opacity-30 transition-colors"
+                    >
+                      <Check size={14} />
+                    </button>
+                  </div>
+                  {localTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border-subtle/50">
+                      {localTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
+                                     bg-accent-violet-soft text-accent-violet text-[10px] font-medium font-mono"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="hover:text-accent-rose transition-colors"
+                          >
+                            <X size={10} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}

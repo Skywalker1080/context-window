@@ -32,7 +32,7 @@ interface LinksContextValue {
   filteredLinks: LinkItem[];
   filter: FilterState;
   setFilter: (filter: Partial<FilterState>) => void;
-  addLink: (url: string, note?: string) => Promise<void>;
+  addLink: (url: string, note?: string, tags?: string[]) => Promise<void>;
   triageLink: (
     id: string,
     status: LinkStatus,
@@ -208,7 +208,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
   });
 
   const addLink = useCallback(
-    async (url: string, note?: string) => {
+    async (url: string, note?: string, tags?: string[]) => {
       if (!user) return;
       if (inboxLinks.length >= INBOX_LIMIT) {
         throw new Error(
@@ -229,7 +229,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         note: note || "",
         status: "inbox" as LinkStatus,
         category,
-        tags: [],
+        tags: tags || [],
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
         userId: user.uid,

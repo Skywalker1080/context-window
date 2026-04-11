@@ -12,7 +12,6 @@ import {
   MessageSquare,
   ChevronDown,
   ChevronUp,
-  Pencil,
   X,
   Check,
 } from "lucide-react";
@@ -27,7 +26,6 @@ interface LinkCardProps {
 export function LinkCard({ link, mode }: LinkCardProps) {
   const { triageLink, updateLink, deleteLink } = useLinks();
   const [expanded, setExpanded] = useState(false);
-  const [editingTags, setEditingTags] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(link.category);
   const [localTags, setLocalTags] = useState<string[]>(link.tags);
@@ -134,7 +132,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               size={12}
               className="text-accent-violet mt-0.5 flex-shrink-0"
             />
-            <p className="text-xs text-accent-violet/80 italic">{link.note}</p>
+            <p className="text-xs text-accent-violet/80">{link.note}</p>
           </div>
         )}
 
@@ -144,13 +142,13 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               <span
                 key={tag}
                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
-                           bg-accent-violet-soft text-accent-violet text-[10px] font-medium"
+                           bg-accent-violet-soft text-accent-violet text-[10px] font-medium font-mono"
               >
                 {tag}
-                {(editingTags || mode === "inbox") && (
+                {(expanded || mode === "inbox") && (
                   <button
                     onClick={() => removeTag(tag)}
-                    className="hover:text-rose-400 transition-colors"
+                    className="hover:text-accent-rose transition-colors"
                   >
                     <X size={10} />
                   </button>
@@ -264,19 +262,10 @@ export function LinkCard({ link, mode }: LinkCardProps) {
           ) : (
             <>
               <button
-                onClick={() => setEditingTags(!editingTags)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-surface-overlay text-text-muted hover:text-accent-violet
-                           hover:bg-accent-violet-soft transition-all duration-200"
-              >
-                <Pencil size={12} />
-                Edit
-              </button>
-              <button
                 onClick={() => handleTriage("archived")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-surface-overlay text-text-muted hover:text-amber-400
-                           hover:bg-amber-500/15 transition-all duration-200"
+                           bg-surface-overlay text-text-muted hover:text-accent-amber
+                           hover:bg-accent-amber-soft transition-all duration-200"
               >
                 <Archive size={14} />
                 Archive
@@ -284,11 +273,11 @@ export function LinkCard({ link, mode }: LinkCardProps) {
               <button
                 onClick={() => handleTriage("deleted")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                           bg-surface-overlay text-text-muted hover:text-rose-400
-                           hover:bg-rose-500/15 transition-all duration-200
-                           opacity-0 group-hover:opacity-100"
+                           bg-surface-overlay text-text-muted hover:text-accent-rose
+                           hover:bg-accent-rose-soft transition-all duration-200"
               >
-                <Trash2 size={12} />
+                <Trash2 size={14} />
+                Trash
               </button>
             </>
           )}

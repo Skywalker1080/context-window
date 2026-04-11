@@ -40,7 +40,7 @@ export function InboxQueue() {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/15 text-amber-400"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-accent-amber-soft text-accent-amber"
             >
               <AlertTriangle size={12} />
               <span className="text-[10px] font-semibold">CONTEXT WINDOW FULL</span>
@@ -53,7 +53,7 @@ export function InboxQueue() {
                 className={`w-2 h-2 rounded-full transition-all duration-500 ${
                   i < inboxLinks.length
                     ? inboxFull
-                      ? "bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.4)]"
+                      ? "bg-accent-amber shadow-[0_0_8px_rgba(245,158,11,0.4)]"
                       : "bg-accent-violet shadow-[0_0_8px_rgba(171,85,61,0.3)]"
                     : "bg-border-subtle"
                 }`}

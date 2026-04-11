@@ -122,7 +122,7 @@ export function LibraryView() {
           {filter.category && (
             <span
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg
-                           bg-accent-cyan-soft text-accent-cyan text-xs font-medium"
+                           bg-accent-violet-soft text-accent-violet text-xs font-medium"
             >
               <FolderOpen size={12} />
               {filter.category}

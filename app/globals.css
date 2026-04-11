@@ -47,11 +47,11 @@
   --color-accent-cyan: oklch(0.69 0.16 290.41); /* Periwinkle/Blue */
   --color-accent-cyan-soft: oklch(0.69 0.16 290.41 / 20%);
   
-  --color-accent-emerald: oklch(0.56 0.13 43.00); /* Forest Green */
-  --color-accent-emerald-soft: oklch(0.56 0.13 43.00 / 20%);
+  --color-accent-emerald: oklch(0.72 0.11 144.32); /* Forest Green */
+  --color-accent-emerald-soft: oklch(0.72 0.11 144.32 / 20%);
   
-  --color-accent-amber: oklch(0.67 0.13 38.76 / 40%);
-  --color-accent-amber-soft: oklch(0.67 0.13 38.76 / 15%);
+  --color-accent-amber: oklch(0.79 0.15 80.00); /* Amber/Yellow */
+  --color-accent-amber-soft: oklch(0.79 0.15 80.00 / 20%);
   
   --color-accent-rose: var(--claude-destructive);
   --color-accent-rose-soft: oklch(0.64 0.21 25.33 / 20%);

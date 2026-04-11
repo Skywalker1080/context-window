@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Layers, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import { Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AuthPage() {
@@ -55,16 +56,15 @@ export function AuthPage() {
     <div className="min-h-dvh flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent-violet/8 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-cyan/6 rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-accent-rose/4 rounded-full blur-[100px]" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent-violet/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-violet/5 rounded-full blur-[120px]" />
 
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
             backgroundImage: `
-              linear-gradient(rgba(124, 58, 237, 0.3) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(124, 58, 237, 0.3) 1px, transparent 1px)
+              linear-gradient(rgba(171, 85, 61, 0.3) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(171, 85, 61, 0.3) 1px, transparent 1px)
             `,
             backgroundSize: "60px 60px",
           }}
@@ -83,9 +83,15 @@ export function AuthPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.1, type: "spring", damping: 15 }}
-            className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-accent-violet to-accent-cyan mb-4"
+            className="inline-flex p-3 rounded-2xl bg-accent-violet mb-4 shadow-xl shadow-accent-violet/20"
           >
-            <Layers size={32} className="text-white" />
+            <Image 
+              src="/context_window.svg" 
+              alt="Context Window Logo" 
+              width={32} 
+              height={32}
+              priority
+            />
           </motion.div>
           <h1 className="text-2xl font-bold text-text-primary tracking-tight">
             Context Window
@@ -96,7 +102,7 @@ export function AuthPage() {
         </div>
 
         {/* Card */}
-        <div className="glass-strong rounded-2xl p-6 glow-violet">
+        <div className="glass-strong rounded-2xl p-6">
           {/* Google sign-in */}
           <button
             onClick={handleGoogleSignIn}
@@ -186,7 +192,7 @@ export function AuthPage() {
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-2 text-xs text-rose-400 px-1"
+                  className="flex items-center gap-2 text-xs text-accent-rose px-1"
                 >
                   <AlertCircle size={14} />
                   <span>{error}</span>
@@ -198,9 +204,8 @@ export function AuthPage() {
               type="submit"
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
-                         bg-gradient-to-r from-accent-violet to-accent-cyan
-                         text-white text-sm font-semibold
-                         hover:shadow-[0_0_30px_rgba(124,58,237,0.3)]
+                         bg-accent-violet text-white text-sm font-semibold
+                         hover:shadow-lg hover:brightness-110
                          transition-all duration-300 disabled:opacity-50"
             >
               {loading ? (

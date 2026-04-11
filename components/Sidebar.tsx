@@ -114,7 +114,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
                   className={`relative z-10 ml-auto px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold
                     ${
                       item.id === "inbox" && item.badge >= 5
-                        ? "bg-amber-500/20 text-amber-400"
+                        ? "bg-accent-amber-soft text-accent-amber"
                         : "bg-accent-violet-soft text-accent-violet"
                     }`}
                 >
@@ -250,11 +250,14 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
             <p className="text-xs font-medium text-text-secondary truncate">
               {user?.displayName || user?.email?.split("@")[0] || "User"}
             </p>
+            <p className="text-[10px] text-text-ghost font-medium">
+              Beta Account
+            </p>
           </div>
           <button
             onClick={signOut}
-            className="p-1.5 rounded-lg text-text-ghost hover:text-rose-400
-                       hover:bg-rose-500/10 transition-all duration-200"
+            className="p-1.5 rounded-lg text-text-ghost hover:text-accent-rose
+                       hover:bg-accent-rose-soft transition-all duration-200"
             title="Sign out"
           >
             <LogOut size={14} />
