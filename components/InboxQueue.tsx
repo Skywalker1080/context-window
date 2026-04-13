@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { Inbox, Zap, AlertTriangle } from "lucide-react";
+import { Zap, AlertTriangle } from "lucide-react";
 import { useLinks } from "@/contexts/LinksContext";
 import { LinkCard } from "./LinkCard";
 
@@ -23,7 +24,14 @@ export function InboxQueue() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-accent-violet-soft">
-            <Inbox size={18} className="text-accent-violet" />
+            <Image 
+              src="/queue.svg" 
+              alt="Queue Logo" 
+              width={18} 
+              height={18}
+              className="w-[18px] h-[18px] object-contain"
+              priority
+            />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-text-primary">

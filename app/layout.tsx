@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   description:
     "A high-performance personal knowledge management tool for capturing, triaging, and organizing web links with surgical precision.",
   applicationName: "Context Window",
+  icons: {
+    icon: "/context_window.svg",
+    shortcut: "/context_window.svg",
+    apple: "/context_window.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -30,7 +35,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#7c3aed",
+  themeColor: "#CC6B4F",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -47,9 +52,6 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable} dark`}
     >
-      <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-      </head>
       <body className="min-h-dvh font-sans antialiased">{children}</body>
     </html>
   );
