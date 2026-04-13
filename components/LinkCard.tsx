@@ -32,7 +32,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
 
   const timeAgo = getTimeAgo(link.createdAt);
 
-  const handleTriage = async (status: "library" | "archived" | "deleted") => {
+  const handleTriage = async (status: "library" | "deleted") => {
     if (status === "deleted") {
       await deleteLink(link.id);
     } else {
