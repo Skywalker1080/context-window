@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut,
   User,
-  Layers,
   Download,
   Share,
   Plus,
