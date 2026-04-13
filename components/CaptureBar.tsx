@@ -71,7 +71,6 @@ export function CaptureBar() {
         setIsSubmitting(false);
       }
     },
-    },
     [url, note, addLink]
   );
 
