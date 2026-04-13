@@ -22,14 +22,6 @@ export function LibraryView() {
     new Set(insights.topTags.map((t) => t.name))
   );
 
-  const statusTabs: {
-    label: string;
-    value: LinkStatus;
-  }[] = [
-    { label: "Library", value: "library" },
-    { label: "Archived", value: "archived" },
-  ];
-
   if (loading) {
     return (
       <div className="space-y-3">
@@ -61,25 +53,6 @@ export function LibraryView() {
             </p>
           </div>
         </div>
-      </div>
-
-      {/* Status tabs */}
-      <div className="flex gap-1 p-1 rounded-lg bg-surface-raised/50">
-        {statusTabs.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => setFilter({ status: tab.value })}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
-                         transition-all duration-200 flex-1 justify-center
-              ${
-                filter.status === tab.value
-                  ? "bg-surface-overlay text-text-primary shadow-sm"
-                  : "text-text-muted hover:text-text-secondary"
-              }`}
-          >
-             {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* Search + Filter */}

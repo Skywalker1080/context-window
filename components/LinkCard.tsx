@@ -4,7 +4,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   ExternalLink,
-  Archive,
   Trash2,
   BookmarkCheck,
   Tag,
@@ -274,26 +273,6 @@ export function LinkCard({ link, mode }: LinkCardProps) {
             </>
           ) : (
             <>
-              {link.status === "archived" ? (
-                <button
-                  onClick={() => handleTriage("library")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                             bg-accent-emerald-soft text-accent-emerald hover:bg-accent-emerald/25
-                             transition-all duration-200"
-                >
-                  Move to Library
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleTriage("archived")}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-                             bg-surface-overlay text-text-muted hover:text-accent-amber
-                             hover:bg-accent-amber-soft transition-all duration-200"
-                >
-                  <Archive size={14} />
-                  Archive
-                </button>
-              )}
               <button
                 onClick={() => handleTriage("deleted")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium

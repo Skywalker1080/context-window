@@ -50,7 +50,7 @@ export function InsightsPanel() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {[
           {
             label: "Inbox",
@@ -63,12 +63,6 @@ export function InsightsPanel() {
             value: insights.libraryCount,
             color: "text-accent-emerald",
             bg: "bg-accent-emerald-soft",
-          },
-          {
-            label: "Archived",
-            value: insights.archivedCount,
-            color: "text-accent-amber",
-            bg: "bg-accent-amber-soft",
           },
         ].map((stat) => (
           <motion.div

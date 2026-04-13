@@ -1,6 +1,6 @@
 // Type definitions for Context Window
 
-export type LinkStatus = "inbox" | "library" | "archived" | "deleted";
+export type LinkStatus = "inbox" | "library" | "deleted";
 
 export interface LinkItem {
   id: string;
@@ -42,7 +42,6 @@ export interface InsightData {
   totalLinks: number;
   inboxCount: number;
   libraryCount: number;
-  archivedCount: number;
   categoryBreakdown: { name: string; count: number }[];
   recentActivity: { date: string; captured: number; processed: number }[];
   topTags: { name: string; count: number }[];

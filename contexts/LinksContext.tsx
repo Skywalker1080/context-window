@@ -299,7 +299,6 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     totalLinks: links.length,
     inboxCount: inboxLinks.length,
     libraryCount: libraryLinks.length,
-    archivedCount: links.filter((l) => l.status === "archived").length,
     categoryBreakdown: DEFAULT_CATEGORIES.map((cat) => ({
       name: cat.name,
       count: links.filter(
