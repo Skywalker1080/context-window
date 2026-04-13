@@ -82,10 +82,10 @@ export function InboxQueue() {
               <Zap size={28} className="text-accent-violet" />
             </div>
             <p className="text-sm text-text-secondary font-medium">
-              Inbox clear
+              Inbox Empty
             </p>
             <p className="text-xs text-text-ghost mt-1">
-              Capture a link above to start
+              Capture a link above to start building your knowledge base
             </p>
           </motion.div>
         ) : (

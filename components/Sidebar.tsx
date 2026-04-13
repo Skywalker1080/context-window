@@ -3,7 +3,6 @@
 import { type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BarChart3,
   LogOut,
   User,
   Layers,
@@ -38,7 +37,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   }[] = [
     {
       id: "inbox",
-      label: "Inbox",
+      label: "Queue",
       icon: <Image src="/queue.svg" alt="" width={20} height={20} className="object-cover rounded-md" />,
       badge: inboxLinks.length || undefined,
     },
@@ -51,7 +50,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
     {
       id: "insights",
       label: "Insights",
-      icon: <BarChart3 size={18} />,
+      icon: <Image src="/insights.svg" alt="" width={20} height={20} className="object-cover rounded-md" />,
     },
   ];
 

@@ -1,14 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
-  BarChart3,
   TrendingUp,
   Tag,
   FolderOpen,
-  Inbox,
-  Library,
-  Archive,
 } from "lucide-react";
 import { useLinks } from "@/contexts/LinksContext";
 
@@ -35,8 +32,14 @@ export function InsightsPanel() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-accent-amber-soft">
-          <BarChart3 size={18} className="text-accent-amber" />
+        <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+          <Image 
+            src="/insights.svg" 
+            alt="Insights Logo" 
+            width={36} 
+            height={36}
+            className="w-full h-full object-cover"
+          />
         </div>
         <div>
           <h2 className="text-sm font-semibold text-text-primary">Insights</h2>
@@ -52,21 +55,18 @@ export function InsightsPanel() {
           {
             label: "Inbox",
             value: insights.inboxCount,
-            icon: <Inbox size={14} />,
             color: "text-accent-cyan",
             bg: "bg-accent-cyan-soft",
           },
           {
             label: "Library",
             value: insights.libraryCount,
-            icon: <Library size={14} />,
             color: "text-accent-emerald",
             bg: "bg-accent-emerald-soft",
           },
           {
             label: "Archived",
             value: insights.archivedCount,
-            icon: <Archive size={14} />,
             color: "text-accent-amber",
             bg: "bg-accent-amber-soft",
           },
@@ -77,11 +77,6 @@ export function InsightsPanel() {
             animate={{ opacity: 1, y: 0 }}
             className="glass rounded-xl p-3 text-center"
           >
-            <div
-              className={`inline-flex p-1.5 rounded-md ${stat.bg} ${stat.color} mb-2`}
-            >
-              {stat.icon}
-            </div>
             <div className="text-xl font-bold text-text-primary font-mono">
               {stat.value}
             </div>

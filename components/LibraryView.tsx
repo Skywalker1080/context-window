@@ -9,7 +9,6 @@ import {
   X,
   Tag,
   FolderOpen,
-  Archive,
 } from "lucide-react";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
 import { LinkCard } from "./LinkCard";
@@ -26,10 +25,9 @@ export function LibraryView() {
   const statusTabs: {
     label: string;
     value: LinkStatus;
-    icon: ReactNode;
   }[] = [
-    { label: "Library", value: "library", icon: <Image src="/library.svg" alt="" width={16} height={16} className="rounded-[3px] overflow-hidden" /> },
-    { label: "Archived", value: "archived", icon: <Archive size={14} /> },
+    { label: "Library", value: "library" },
+    { label: "Archived", value: "archived" },
   ];
 
   if (loading) {
@@ -79,8 +77,7 @@ export function LibraryView() {
                   : "text-text-muted hover:text-text-secondary"
               }`}
           >
-            {tab.icon}
-            {tab.label}
+             {tab.label}
           </button>
         ))}
       </div>
@@ -263,7 +260,7 @@ export function LibraryView() {
             <p className="text-xs text-text-ghost mt-1">
               {filter.search || filter.category || filter.tags.length > 0
                 ? "Try adjusting your filters"
-                : "Triage inbox links to add them here"}
+                : "Add links from your Inbox to build your library"}
             </p>
           </motion.div>
         ) : (
