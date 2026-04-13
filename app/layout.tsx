@@ -20,9 +20,9 @@ export const metadata: Metadata = {
     "A high-performance personal knowledge management tool for capturing, triaging, and organizing web links with surgical precision.",
   applicationName: "Context Window",
   icons: {
-    icon: "/context_window.svg",
-    shortcut: "/context_window.svg",
-    apple: "/context_window.svg",
+    icon: "/icons/ctx_logo-192x192.png",
+    shortcut: "/icons/ctx_logo-192x192.png",
+    apple: "/icons/ctx_logo-192x192.png",
   },
   appleWebApp: {
     capable: true,
