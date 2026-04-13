@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   Filter,
   X,
-  Library,
   Tag,
   FolderOpen,
   Archive,
@@ -28,7 +28,7 @@ export function LibraryView() {
     value: LinkStatus;
     icon: ReactNode;
   }[] = [
-    { label: "Library", value: "library", icon: <Library size={14} /> },
+    { label: "Library", value: "library", icon: <Image src="/library.svg" alt="" width={14} height={14} /> },
     { label: "Archived", value: "archived", icon: <Archive size={14} /> },
   ];
 
@@ -46,8 +46,14 @@ export function LibraryView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent-emerald-soft">
-            <Library size={18} className="text-accent-emerald" />
+          <div className="p-2 rounded-lg bg-accent-emerald-soft/10">
+            <Image 
+              src="/library.svg" 
+              alt="Library" 
+              width={18} 
+              height={18}
+              className="w-[18px] h-[18px] object-contain rounded-[4px]"
+            />
           </div>
           <div>
             <h2 className="text-sm font-semibold text-text-primary">Library</h2>

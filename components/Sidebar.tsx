@@ -3,8 +3,6 @@
 import { type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Inbox,
-  Library,
   BarChart3,
   LogOut,
   User,
@@ -41,13 +39,13 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
     {
       id: "inbox",
       label: "Inbox",
-      icon: <Inbox size={18} />,
+      icon: <Image src="/queue.svg" alt="" width={18} height={18} className="object-contain" />,
       badge: inboxLinks.length || undefined,
     },
     {
       id: "library",
       label: "Library",
-      icon: <Library size={18} />,
+      icon: <Image src="/library.svg" alt="" width={18} height={18} className="object-contain" />,
       badge: insights.libraryCount || undefined,
     },
     {
