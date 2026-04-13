@@ -51,30 +51,21 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets (Next.js chunks, images)
+  // Network-first for static assets (Next.js chunks, images, etc.)
+  // This prevents the "stale chunk" issue during deployments or local dev
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request)
-          .then((response) => {
-            if (
-              response.status === 200 &&
-              response.type === "basic"
-            ) {
-              const clone = response.clone();
-              caches
-                .open(CACHE_NAME)
-                .then((cache) => cache.put(event.request, clone));
-            }
-            return response;
-          })
-          .catch(() => {
-            // Return cached version or offline fallback
-            return caches.match("/");
-          })
-      );
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response.status === 200 && response.type === "basic") {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fallback to cache if offline
+        return caches.match(event.request);
+      })
   );
 });
 
