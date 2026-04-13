@@ -6,9 +6,7 @@ import {
   Link2,
   Zap,
   AlertTriangle,
-  MessageSquare,
-  Send,
-  X,
+  ArrowUp,
 } from "lucide-react";
 import { useLinks } from "@/contexts/LinksContext";
 
@@ -128,7 +126,7 @@ export function CaptureBar() {
             }
             disabled={inboxFull || isSubmitting}
             className="flex-1 min-w-0 w-full bg-transparent text-text-primary placeholder-text-ghost
-                       outline-none text-sm font-mono disabled:opacity-50"
+                       outline-none text-sm font-sans disabled:opacity-50"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -145,7 +143,6 @@ export function CaptureBar() {
                 ${showNote ? "text-accent-violet" : "text-text-muted hover:text-text-secondary"}`}
               title="Add a note"
             >
-              <MessageSquare size={16} />
             </button>
 
             <div
@@ -162,7 +159,7 @@ export function CaptureBar() {
                          hover:bg-accent-violet/30 transition-all duration-200
                          disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <Send size={16} />
+              <ArrowUp size={16} />
             </button>
           </div>
         </div>
@@ -182,7 +179,7 @@ export function CaptureBar() {
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Why are you saving this?"
                   className="w-full bg-surface-raised/50 border border-border-subtle rounded-lg
-                             px-3 py-2 text-sm font-mono text-text-secondary placeholder-text-ghost
+                             px-3 py-2 text-sm font-sans text-text-secondary placeholder-text-ghost
                              outline-none resize-none focus:border-accent-violet/30
                              transition-colors duration-200"
                   rows={2}

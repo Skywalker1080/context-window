@@ -182,8 +182,8 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
 
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-cyan/15 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-accent-cyan">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-violet-soft flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-accent-violet">
                       1
                     </span>
                   </div>
@@ -191,14 +191,14 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
                     Tap the{" "}
                     <Share
                       size={12}
-                      className="inline text-accent-cyan align-text-bottom"
+                      className="inline text-accent-violet align-text-bottom"
                     />{" "}
                     <strong>Share</strong> button in Safari&apos;s toolbar
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-cyan/15 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-accent-cyan">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-violet-soft flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-accent-violet">
                       2
                     </span>
                   </div>
@@ -206,14 +206,14 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
                     Scroll down and tap{" "}
                     <Plus
                       size={12}
-                      className="inline text-accent-cyan align-text-bottom"
+                      className="inline text-accent-violet align-text-bottom"
                     />{" "}
                     <strong>Add to Home Screen</strong>
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-cyan/15 flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-accent-cyan">
+                  <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent-violet-soft flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-accent-violet">
                       3
                     </span>
                   </div>

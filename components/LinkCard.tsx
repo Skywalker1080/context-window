@@ -29,6 +29,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
   const [tagInput, setTagInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(link.category);
   const [localTags, setLocalTags] = useState<string[]>(link.tags);
+  const [localNote, setLocalNote] = useState(link.note || "");
 
   const timeAgo = getTimeAgo(link.createdAt);
 
@@ -126,7 +127,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
           </p>
         )}
 
-        {link.note && (
+        {link.note && !expanded && (
           <div className="mt-2 pl-8 flex items-start gap-1.5">
             <MessageSquare
               size={12}
@@ -164,8 +165,29 @@ export function LinkCard({ link, mode }: LinkCardProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="mt-3 pl-8 space-y-3"
+            className="mt-3 pl-8 space-y-4"
           >
+            <div>
+              <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1">
+                <MessageSquare size={10} />
+                Personal Note
+              </label>
+              <textarea
+                value={localNote}
+                onChange={(e) => setLocalNote(e.target.value)}
+                onBlur={() => {
+                  if (localNote !== link.note) {
+                    updateLink(link.id, { note: localNote });
+                  }
+                }}
+                placeholder="Why did you save this?"
+                className="w-full bg-surface-raised/50 border border-border-subtle rounded-lg
+                           px-3 py-2 text-xs text-text-secondary placeholder-text-ghost
+                           outline-none resize-none focus:border-accent-violet/30 transition-colors font-sans"
+                rows={2}
+              />
+            </div>
+
             <div>
               <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 block">
                 Category

@@ -15,6 +15,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://context-window.vercel.app"),
   title: "Context Window — Capture. Triage. Organize.",
   description:
     "A high-performance personal knowledge management tool for capturing, triaging, and organizing web links with surgical precision.",
@@ -28,6 +29,27 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Context Window",
+  },
+  openGraph: {
+    title: "Context Window — Capture. Triage. Organize.",
+    description: "A high-performance personal knowledge management tool for capturing, triaging, and organizing web links with surgical precision.",
+    siteName: "Context Window",
+    images: [
+      {
+        url: "/icons/ctx_logo-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Context Window Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Context Window",
+    description: "Personal Knowledge Management for links with surgical precision.",
+    images: ["/icons/ctx_logo-512x512.png"],
   },
   formatDetection: {
     telephone: false,

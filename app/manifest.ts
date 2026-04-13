@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Context Window",
-    short_name: "CtxWindow",
+    short_name: "Context Window",
     description:
       "A high-performance personal knowledge management tool. Capture, triage, and organize web links with surgical precision.",
     start_url: "/",
