@@ -23,13 +23,13 @@ export function InboxQueue() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent-violet-soft">
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
             <Image 
               src="/queue.svg" 
               alt="Queue Logo" 
-              width={18} 
-              height={18}
-              className="w-[18px] h-[18px] object-contain"
+              width={36} 
+              height={36}
+              className="w-full h-full object-cover"
               priority
             />
           </div>

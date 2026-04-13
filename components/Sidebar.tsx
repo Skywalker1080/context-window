@@ -39,13 +39,13 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
     {
       id: "inbox",
       label: "Inbox",
-      icon: <Image src="/queue.svg" alt="" width={18} height={18} className="object-contain" />,
+      icon: <Image src="/queue.svg" alt="" width={20} height={20} className="object-cover rounded-md" />,
       badge: inboxLinks.length || undefined,
     },
     {
       id: "library",
       label: "Library",
-      icon: <Image src="/library.svg" alt="" width={18} height={18} className="object-contain" />,
+      icon: <Image src="/library.svg" alt="" width={20} height={20} className="object-cover rounded-md" />,
       badge: insights.libraryCount || undefined,
     },
     {

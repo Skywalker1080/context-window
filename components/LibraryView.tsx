@@ -28,7 +28,7 @@ export function LibraryView() {
     value: LinkStatus;
     icon: ReactNode;
   }[] = [
-    { label: "Library", value: "library", icon: <Image src="/library.svg" alt="" width={14} height={14} /> },
+    { label: "Library", value: "library", icon: <Image src="/library.svg" alt="" width={16} height={16} className="rounded-[3px] overflow-hidden" /> },
     { label: "Archived", value: "archived", icon: <Archive size={14} /> },
   ];
 
@@ -46,13 +46,13 @@ export function LibraryView() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent-emerald-soft/10">
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
             <Image 
               src="/library.svg" 
               alt="Library" 
-              width={18} 
-              height={18}
-              className="w-[18px] h-[18px] object-contain rounded-[4px]"
+              width={36} 
+              height={36}
+              className="w-full h-full object-cover"
             />
           </div>
           <div>
