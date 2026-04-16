@@ -30,7 +30,7 @@ export function Dashboard() {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-56 flex-shrink-0 border-r border-border-subtle glass-strong fixed inset-y-0 left-0 z-40">
+      <aside className="hidden lg:block w-56 flex-shrink-0 fixed inset-y-0 left-0 z-40 bg-void border-r border-border-subtle">
         <Sidebar activeView={activeView} onViewChange={setActiveView} />
       </aside>
 
@@ -65,7 +65,7 @@ export function Dashboard() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="lg:hidden fixed inset-y-0 left-0 w-56 z-50 glass-strong border-r border-border-subtle"
+              className="lg:hidden fixed inset-y-0 left-0 w-56 z-50 bg-void border-r border-border-subtle"
             >
               <Sidebar
                 activeView={activeView}

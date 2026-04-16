@@ -16,7 +16,10 @@
 
 ### Contexts & State (The "Brain")
 * `contexts/AuthContext.tsx` — Handles Google/Email login state.
-* `contexts/LinksContext.tsx` — **Core Logic.** Handles Firestore CRUD, Inbox/Library tagging, offline fetching, and microlink API metadata scraping. 
+* `contexts/LinksContext.tsx` — **Core Logic.** Handles Firestore CRUD, Inbox/Library tagging, and offline fetching. 
+
+### API Routes
+* `app/api/scrape/route.ts` — **Scraping Proxy.** Forwards metadata extraction requests to a standalone Railway service running Fastify and Metascraper.
 
 ### UI Components (`/components`)
 * `AppShell.tsx` — The main gatekeeper. Shows `AuthPage` if unauthenticated, or `Dashboard` if logged in.

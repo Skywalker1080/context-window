@@ -109,7 +109,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
                 <span
                   className={`relative z-10 ml-auto px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold
                     ${
-                      item.id === "inbox" && item.badge >= 5
+                      item.id === "inbox" && item.badge >= 9
                         ? "bg-accent-amber-soft text-accent-amber"
                         : "bg-accent-violet-soft text-accent-violet"
                     }`}

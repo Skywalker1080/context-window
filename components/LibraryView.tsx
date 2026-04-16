@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
 import { LinkCard } from "./LinkCard";
-import type { LinkStatus } from "@/types";
-
 export function LibraryView() {
   const { filteredLinks, filter, setFilter, loading, insights } = useLinks();
   const [showFilters, setShowFilters] = useState(false);

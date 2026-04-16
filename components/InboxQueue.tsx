@@ -51,11 +51,11 @@ export function InboxQueue() {
               className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-accent-amber-soft text-accent-amber"
             >
               <AlertTriangle size={12} />
-              <span className="text-[10px] font-semibold">CONTEXT WINDOW FULL</span>
+              <span className="text-[10px] font-semibold">FULL</span>
             </motion.div>
           )}
           <div className="flex gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
+            {Array.from({ length: 9 }).map((_, i) => (
               <div
                 key={i}
                 className={`w-2 h-2 rounded-full transition-all duration-500 ${

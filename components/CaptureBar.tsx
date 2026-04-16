@@ -149,7 +149,7 @@ export function CaptureBar() {
               className={`px-2 py-0.5 rounded-md text-xs font-mono font-semibold
                 ${inboxFull ? "bg-accent-amber-soft text-accent-amber" : "bg-accent-violet-soft text-accent-violet"}`}
             >
-              {inboxLinks.length}/5
+              {inboxLinks.length}/9
             </div>
 
             <button

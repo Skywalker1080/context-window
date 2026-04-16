@@ -8,10 +8,10 @@
   /* ================================================================
      Claude Dark Theme Foundation
      ================================================================ */
-  --claude-background: oklch(0.27 0.00 106.64);
-  --claude-foreground: oklch(0.81 0.01 93.01);
+  --claude-background: oklch(0.2400 0.0019 106.54);
+  --claude-foreground: oklch(0.80 0.01 93.01);
   --claude-card: oklch(0.27 0.00 106.64);
-  --claude-card-foreground: oklch(0.98 0.01 95.10);
+  --claude-card-foreground: oklch(0.88 0.01 95.10);
   --claude-popover: oklch(0.31 0.00 106.60);
   --claude-primary: oklch(0.67 0.13 38.76);
   --claude-secondary: oklch(0.98 0.01 95.10);

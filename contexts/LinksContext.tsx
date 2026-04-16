@@ -48,7 +48,7 @@ interface LinksContextValue {
 
 const LinksContext = createContext<LinksContextValue | null>(null);
 
-const INBOX_LIMIT = 5;
+const INBOX_LIMIT = 9;
 
 export const DEFAULT_CATEGORIES = [
   { name: "Youtube", icon: "" },
@@ -69,7 +69,7 @@ async function fetchUrlMetadata(url: string) {
     favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`,
   };
 
-  // Special handler for YouTube urls because they block bots like microlink
+  // Special handler for YouTube — they block HTML scrapers, use oEmbed instead
   if (url.includes("youtube.com") || url.includes("youtu.be")) {
     try {
       const response = await fetch(
@@ -84,20 +84,26 @@ async function fetchUrlMetadata(url: string) {
         };
       }
     } catch {
-      // fail silently and fallback to microlink
+      // fall through to metascraper
     }
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
     const response = await fetch(
-      `https://api.microlink.io/?url=${encodeURIComponent(url)}`
+      `/api/scrape?url=${encodeURIComponent(url)}`,
+      { signal: controller.signal }
     );
+    clearTimeout(timeoutId);
+
     if (!response.ok) return fallback;
     const data = await response.json();
     return {
-      title: data.data?.title || fallback.title,
-      description: data.data?.description || "",
-      favicon: data.data?.logo?.url || fallback.favicon,
+      title: data.title || fallback.title,
+      description: data.description || "",
+      favicon: data.favicon || fallback.favicon,
     };
   } catch {
     return fallback;

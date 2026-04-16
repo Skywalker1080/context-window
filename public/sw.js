@@ -1,7 +1,7 @@
 // PWA Service Worker
 // Handles caching and offline support
 
-const CACHE_NAME = "context-window-v2";
+const CACHE_NAME = "context-window-v3";
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -25,11 +25,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network-first strategy for API calls
+  // Network-only / bypass for Firebase and API scraper calls
   if (
     event.request.url.includes("firestore.googleapis.com") ||
     event.request.url.includes("identitytoolkit.googleapis.com") ||
-    event.request.url.includes("api.microlink.io")
+    event.request.url.includes("/api/scrape")
   ) {
     return;
   }
