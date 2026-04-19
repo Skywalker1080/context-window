@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { useState, useRef, useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LogOut,
@@ -9,27 +9,105 @@ import {
   Share,
   Plus,
   X,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Check,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLinks } from "@/contexts/LinksContext";
+import { useCollections } from "@/contexts/CollectionsContext";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
-
-type View = "inbox" | "library" | "insights";
+import type { View } from "@/types";
 
 interface SidebarProps {
   activeView: View;
-  onViewChange: (view: View) => void;
+  activeCollectionId: string | null;
+  onViewChange: (view: View, collectionId?: string) => void;
 }
 
-export function Sidebar({ activeView, onViewChange }: SidebarProps) {
+export function Sidebar({ activeView, activeCollectionId, onViewChange }: SidebarProps) {
   const { user, signOut } = useAuth();
-  const { inboxLinks, insights } = useLinks();
-  const { canInstall, isIOS, showIOSGuide, install, dismissIOSGuide } =
+  const { inboxLinks, insights, links } = useLinks();
+  const { collections, createCollection, renameCollection, deleteCollection } =
+    useCollections();
+  const { canInstall, showIOSGuide, install, dismissIOSGuide } =
     usePWAInstall();
 
+  // Collection creation state
+  const [isCreating, setIsCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+  const createInputRef = useRef<HTMLInputElement>(null);
+
+  // Collection rename state
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
+
+  // Context menu state
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Auto-focus create input
+  useEffect(() => {
+    if (isCreating) createInputRef.current?.focus();
+  }, [isCreating]);
+
+  // Auto-focus rename input
+  useEffect(() => {
+    if (renamingId) renameInputRef.current?.focus();
+  }, [renamingId]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+    if (menuOpenId) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpenId]);
+
+  const handleCreate = async () => {
+    const name = newName.trim();
+    if (!name) {
+      setIsCreating(false);
+      setNewName("");
+      return;
+    }
+    const id = await createCollection(name);
+    setIsCreating(false);
+    setNewName("");
+    onViewChange("collection", id);
+  };
+
+  const handleRename = async (id: string) => {
+    const name = renameValue.trim();
+    if (name) await renameCollection(id, name);
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  const handleDelete = async (id: string) => {
+    setMenuOpenId(null);
+    await deleteCollection(id);
+    // If we were viewing this collection, go back to library
+    if (activeView === "collection" && activeCollectionId === id) {
+      onViewChange("library");
+    }
+  };
+
+  const getCollectionLinkCount = (collectionId: string) => {
+    return links.filter(
+      (l) => l.status === "library" && l.collectionIds.includes(collectionId)
+    ).length;
+  };
+
+  type NavView = "inbox" | "library" | "insights";
   const navItems: {
-    id: View;
+    id: NavView;
     label: string;
     icon: ReactNode;
     badge?: number;
@@ -77,7 +155,7 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="space-y-1">
         {navItems.map((item) => {
           const isActive = activeView === item.id;
           return (
@@ -121,6 +199,190 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Spacer */}
+      <div className="h-8 flex-shrink-0" />
+
+      {/* Collections Section */}
+      <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex items-center justify-between px-3 mb-2">
+          <span className="text-[12px] text-text-ghost font-inter tracking-wider font-medium">
+            Collections
+          </span>
+          <button
+            onClick={() => {
+              setIsCreating(true);
+              setNewName("");
+            }}
+            className="p-1 rounded-md text-text-ghost hover:text-accent-violet
+                       hover:bg-accent-violet-soft transition-all duration-200"
+            title="New collection"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-0.5 pr-0.5">
+          {/* Create input */}
+          <AnimatePresence>
+            {isCreating && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-1.5 px-2 py-1">
+                  <div className="w-1 h-1 rounded-full bg-text-secondary flex-shrink-0" />
+                  <input
+                    ref={createInputRef}
+                    type="text"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleCreate();
+                      if (e.key === "Escape") {
+                        setIsCreating(false);
+                        setNewName("");
+                      }
+                    }}
+                    onBlur={handleCreate}
+                    placeholder="Collection name…"
+                    className="flex-1 min-w-0 bg-transparent text-xs text-text-primary
+                               placeholder-text-ghost outline-none border-b border-accent-violet/30
+                               py-1 transition-colors"
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Collection items */}
+          {collections.map((col) => {
+            const isActive =
+              activeView === "collection" && activeCollectionId === col.id;
+            const count = getCollectionLinkCount(col.id);
+
+            return (
+              <div key={col.id} className="relative group/col">
+                {renamingId === col.id ? (
+                  /* Rename inline input */
+                  <div className="flex items-center gap-1.5 px-2 py-1.5">
+                    <div className="w-1 h-1 rounded-full bg-text-secondary flex-shrink-0" />
+                    <input
+                      ref={renameInputRef}
+                      type="text"
+                      value={renameValue}
+                      onChange={(e) => setRenameValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleRename(col.id);
+                        if (e.key === "Escape") {
+                          setRenamingId(null);
+                          setRenameValue("");
+                        }
+                      }}
+                      onBlur={() => handleRename(col.id)}
+                      className="flex-1 min-w-0 bg-transparent text-xs text-text-primary
+                                 outline-none border-b border-accent-violet/30 py-0.5 transition-colors"
+                    />
+                    <button
+                      onClick={() => handleRename(col.id)}
+                      className="p-0.5 rounded text-accent-violet"
+                    >
+                      <Check size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  /* Normal collection button */
+                  <button
+                    onClick={() => onViewChange("collection", col.id)}
+                    className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl
+                               text-xs font-medium transition-all duration-200
+                      ${
+                      isActive
+                        ? "text-text-primary bg-accent-violet/10"
+                        : "text-text-muted hover:text-text-secondary hover:bg-surface-raised/50"
+                    }`}
+                  >
+                    <div
+                      className={`w-1 h-1 rounded-full flex-shrink-0 transition-colors
+                        ${isActive ? "bg-text-secondary" : "bg-text-ghost"}
+                      `}
+                    />
+                    <span className="truncate flex-1 text-left">{col.name}</span>
+                    {count > 0 && (
+                      <span className="ml-auto px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold
+                                       bg-accent-violet-soft text-accent-violet">
+                        {count}
+                      </span>
+                    )}
+
+                    {/* More menu trigger */}
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMenuOpenId(menuOpenId === col.id ? null : col.id);
+                      }}
+                      className="p-0.5 rounded text-text-ghost opacity-0 group-hover/col:opacity-100
+                                 hover:text-text-secondary hover:bg-surface-overlay transition-all duration-200"
+                    >
+                      <MoreHorizontal size={14} />
+                    </span>
+                  </button>
+                )}
+
+                {/* Context menu */}
+                <AnimatePresence>
+                  {menuOpenId === col.id && (
+                    <motion.div
+                      ref={menuRef}
+                      initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                      transition={{ duration: 0.12 }}
+                      className="absolute right-2 top-full mt-1 z-50 w-36 py-1
+                                 glass-strong rounded-lg shadow-lg border border-border-subtle"
+                    >
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMenuOpenId(null);
+                          setRenameValue(col.name);
+                          setRenamingId(col.id);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary
+                                   hover:text-text-primary hover:bg-surface-raised/50 transition-colors"
+                      >
+                        <Pencil size={12} />
+                        Rename
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(col.id);
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-text-secondary
+                                   hover:text-accent-rose hover:bg-accent-rose-soft transition-colors"
+                      >
+                        <Trash2 size={12} />
+                        Delete
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+
+          {/* Empty state */}
+          {collections.length === 0 && !isCreating && (
+            <p className="px-3 py-3 text-[10px] text-text-ghost text-center leading-relaxed">
+              Organize links into collections
+            </p>
+          )}
+        </div>
+      </div>
 
       {/* Install App CTA */}
       <AnimatePresence>

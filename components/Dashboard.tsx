@@ -8,17 +8,40 @@ import { CaptureBar } from "@/components/CaptureBar";
 import { InboxQueue } from "@/components/InboxQueue";
 import { LibraryView } from "@/components/LibraryView";
 import { InsightsPanel } from "@/components/InsightsPanel";
-
-type View = "inbox" | "library" | "insights";
+import { CollectionView } from "@/components/CollectionView";
+import type { View } from "@/types";
 
 export function Dashboard() {
   const [activeView, setActiveView] = useState<View>("inbox");
+  const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const viewComponents: Record<View, React.ReactNode> = {
-    inbox: <InboxQueue />,
-    library: <LibraryView />,
-    insights: <InsightsPanel />,
+  const handleViewChange = (view: View, collectionId?: string) => {
+    setActiveView(view);
+    if (view === "collection" && collectionId) {
+      setActiveCollectionId(collectionId);
+    } else if (view !== "collection") {
+      setActiveCollectionId(null);
+    }
+  };
+
+  const renderView = () => {
+    switch (activeView) {
+      case "inbox":
+        return <InboxQueue />;
+      case "library":
+        return <LibraryView />;
+      case "insights":
+        return <InsightsPanel />;
+      case "collection":
+        return activeCollectionId ? (
+          <CollectionView collectionId={activeCollectionId} />
+        ) : (
+          <LibraryView />
+        );
+      default:
+        return <InboxQueue />;
+    }
   };
 
   return (
@@ -31,7 +54,11 @@ export function Dashboard() {
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:block w-56 flex-shrink-0 fixed inset-y-0 left-0 z-40 bg-void border-r border-border-subtle">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} />
+        <Sidebar
+          activeView={activeView}
+          activeCollectionId={activeCollectionId}
+          onViewChange={handleViewChange}
+        />
       </aside>
 
       {/* Mobile header */}
@@ -69,8 +96,9 @@ export function Dashboard() {
             >
               <Sidebar
                 activeView={activeView}
-                onViewChange={(view) => {
-                  setActiveView(view);
+                activeCollectionId={activeCollectionId}
+                onViewChange={(view, collectionId) => {
+                  handleViewChange(view, collectionId);
                   setMobileMenuOpen(false);
                 }}
               />
@@ -93,13 +121,13 @@ export function Dashboard() {
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeView}
+              key={activeView === "collection" ? `collection-${activeCollectionId}` : activeView}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {viewComponents[activeView]}
+              {renderView()}
             </motion.div>
           </AnimatePresence>
         </div>

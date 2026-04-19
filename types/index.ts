@@ -2,6 +2,8 @@
 
 export type LinkStatus = "inbox" | "library" | "deleted";
 
+export type View = "inbox" | "library" | "insights" | "collection";
+
 export interface LinkItem {
   id: string;
   url: string;
@@ -12,9 +14,18 @@ export interface LinkItem {
   status: LinkStatus;
   category: string;
   tags: string[];
+  collectionIds: string[];
   createdAt: number;
   updatedAt: number;
   userId: string;
+}
+
+export interface Collection {
+  id: string;
+  name: string;
+  userId: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
 export interface Category { 

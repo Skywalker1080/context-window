@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   ExternalLink,
   Trash2,
-  BookmarkCheck,
   Tag,
   Clock,
   MessageSquare,
@@ -13,17 +12,23 @@ import {
   ChevronUp,
   X,
   Check,
+  FolderOpen,
+  MinusCircle,
 } from "lucide-react";
 import type { LinkItem } from "@/types";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
+import { useCollections } from "@/contexts/CollectionsContext";
 
 interface LinkCardProps {
   link: LinkItem;
   mode: "inbox" | "library";
+  activeCollectionId?: string;
 }
 
-export function LinkCard({ link, mode }: LinkCardProps) {
+export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
   const { triageLink, updateLink, deleteLink } = useLinks();
+  const { collections, addLinkToCollection, removeLinkFromCollection } =
+    useCollections();
   const [expanded, setExpanded] = useState(false);
   const [tagInput, setTagInput] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(link.category);
@@ -57,6 +62,14 @@ export function LinkCard({ link, mode }: LinkCardProps) {
     setLocalTags(newTags);
     if (mode === "library") {
       updateLink(link.id, { tags: newTags });
+    }
+  };
+
+  const toggleCollection = async (collectionId: string) => {
+    if (link.collectionIds.includes(collectionId)) {
+      await removeLinkFromCollection(link.id, collectionId);
+    } else {
+      await addLinkToCollection(link.id, collectionId);
     }
   };
 
@@ -245,6 +258,36 @@ export function LinkCard({ link, mode }: LinkCardProps) {
                 </button>
               </div>
             </div>
+
+            {/* Collections — only show in library mode when collections exist */}
+            {mode === "library" && collections.length > 0 && (
+              <div>
+                <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-text-ghost" />
+                  Collections
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {collections.map((col) => {
+                    const isInCollection = link.collectionIds.includes(col.id);
+                    return (
+                      <button
+                        key={col.id}
+                        onClick={() => toggleCollection(col.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all duration-200
+                          ${
+                            isInCollection
+                              ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
+                              : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
+                          }`}
+                      >
+                        <FolderOpen size={10} className="inline mr-1 align-[-1px]" />
+                        {col.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -258,7 +301,7 @@ export function LinkCard({ link, mode }: LinkCardProps) {
                            bg-accent-emerald-soft text-accent-emerald hover:bg-accent-emerald/25
                            transition-all duration-200"
               >
-                <BookmarkCheck size={14} />
+                <Check size={14} />
                 Keep
               </button>
               <button
@@ -273,6 +316,20 @@ export function LinkCard({ link, mode }: LinkCardProps) {
             </>
           ) : (
             <>
+              {/* Remove from collection (when viewing inside a collection) */}
+              {activeCollectionId && (
+                <button
+                  onClick={() =>
+                    removeLinkFromCollection(link.id, activeCollectionId)
+                  }
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+                             bg-surface-overlay text-text-muted hover:text-accent-amber
+                             hover:bg-accent-amber-soft transition-all duration-200"
+                >
+                  <MinusCircle size={14} />
+                  Remove
+                </button>
+              )}
               <button
                 onClick={() => handleTriage("deleted")}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium

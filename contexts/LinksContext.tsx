@@ -168,6 +168,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
             status: data.status || "inbox",
             category: data.category || "Website",
             tags: data.tags || [],
+            collectionIds: data.collectionIds || [],
             createdAt:
               data.createdAt instanceof Timestamp
                 ? data.createdAt.toMillis()

@@ -2,6 +2,7 @@
 
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LinksProvider } from "@/contexts/LinksContext";
+import { CollectionsProvider } from "@/contexts/CollectionsContext";
 import { AuthPage } from "@/components/AuthPage";
 import { Dashboard } from "@/components/Dashboard";
 
@@ -76,7 +77,9 @@ function AppContent() {
 
   return (
     <LinksProvider>
-      <Dashboard />
+      <CollectionsProvider>
+        <Dashboard />
+      </CollectionsProvider>
     </LinksProvider>
   );
 }

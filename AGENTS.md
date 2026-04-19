@@ -16,7 +16,8 @@
 
 ### Contexts & State (The "Brain")
 * `contexts/AuthContext.tsx` — Handles Google/Email login state.
-* `contexts/LinksContext.tsx` — **Core Logic.** Handles Firestore CRUD, Inbox/Library tagging, and offline fetching. 
+* `contexts/LinksContext.tsx` — **Core Logic.** Handles Firestore CRUD, Inbox/Library tagging, and offline fetching. Links now carry a `collectionIds: string[]` field.
+* `contexts/CollectionsContext.tsx` — **Collections Logic.** Handles Firestore CRUD for user collections (`collections` top-level collection). Provides `addLinkToCollection` / `removeLinkFromCollection` via `arrayUnion` / `arrayRemove`.
 
 ### API Routes
 * `app/api/scrape/route.ts` — **Scraping Proxy.** Forwards metadata extraction requests to a standalone Railway service running Fastify and Metascraper.
@@ -28,6 +29,7 @@
 * `CaptureBar.tsx` — The fast-entry input for saving new URLs.
 * `LinkCard.tsx` — The main repeatable card component for displaying URLs (with triage actions).
 * `InboxQueue.tsx` / `LibraryView.tsx` — The two primary data views mapping over `LinkCard`.
+* `CollectionView.tsx` — Displays links within a user-created collection. Supports search and inline rename.
 * `InsightsPanel.tsx` — The analytics view showing UI charts and top tags.
 
 ### PWA Assets
@@ -38,4 +40,4 @@
 1. **Styling:** Rely on the custom colors (e.g., `text-accent-violet`, `bg-void`, `glass`) defined in `app/globals.css`. 
 2. **Icons:** Use `lucide-react`.
 3. **Animations:** Use `framer-motion` (`motion.div`, `AnimatePresence`).
-4. **Data Fetching:** Do not use Server Components for data. All Firebase data comes from `useLinks()` in Client Components.
+4. **Data Fetching:** Do not use Server Components for data. All Firebase data comes from `useLinks()` and `useCollections()` in Client Components.
