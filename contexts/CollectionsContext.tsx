@@ -116,10 +116,13 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 
   const deleteCollection = useCallback(
     async (id: string) => {
+      if (!user) throw new Error("Not authenticated");
+
       // 1. Find all links that reference this collection and remove the ID
       const linksQuery = query(
         collection(db, "links"),
-        where("collectionIds", "array-contains", id)
+        where("collectionIds", "array-contains", id),
+        where("userId", "==", user.uid)
       );
       const linksSnapshot = await getDocs(linksQuery);
 
@@ -137,7 +140,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
       // 2. Delete the collection document
       await deleteDoc(doc(db, "collections", id));
     },
-    []
+    [user]
   );
 
   const addLinkToCollection = useCallback(

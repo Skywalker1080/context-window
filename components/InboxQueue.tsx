@@ -38,7 +38,7 @@ export function InboxQueue() {
               Review Queue
             </h2>
             <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-              Triage before it stacks up
+              Review before it stacks up
             </p>
           </div>
         </div>

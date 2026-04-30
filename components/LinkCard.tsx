@@ -181,7 +181,6 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
           >
             <div>
               <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1">
-                <MessageSquare size={10} />
                 Personal Note
               </label>
               <textarea
@@ -229,7 +228,6 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
 
             <div>
               <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1">
-                <Tag size={10} />
                 Tags
               </label>
               <div className="flex items-center gap-2">
@@ -263,7 +261,6 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
             {mode === "library" && collections.length > 0 && (
               <div>
                 <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-text-ghost" />
                   Collections
                 </label>
                 <div className="flex flex-wrap gap-1.5">
