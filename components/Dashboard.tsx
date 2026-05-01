@@ -49,6 +49,16 @@ export function Dashboard() {
 
   return (
     <div className="min-h-dvh flex relative overflow-hidden">
+      {/* Migration ribbon (temporary) */}
+      <div className="fixed top-0 left-0 right-0 z-[60] h-9">
+        <div className="h-full w-full flex items-center justify-center px-4 bg-accent-amber-soft/60 backdrop-blur border-b border-accent-amber/20">
+          <p className="text-[11px] leading-none text-accent-amber font-semibold text-center">
+            We are undergoing a server migration process for better user experience. You might face
+            some difficulty in the app — sorry for the inconvenience.
+          </p>
+        </div>
+      </div>
+
       {/* Background effects */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-accent-violet/5 rounded-full blur-[150px]" />
@@ -56,7 +66,7 @@ export function Dashboard() {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-56 flex-shrink-0 fixed inset-y-0 left-0 z-40 bg-void border-r border-border-subtle">
+      <aside className="hidden lg:block w-56 flex-shrink-0 fixed top-9 bottom-0 left-0 z-40 bg-void border-r border-border-subtle">
         <Sidebar
           activeView={activeView}
           activeCollectionId={activeCollectionId}
@@ -65,7 +75,7 @@ export function Dashboard() {
       </aside>
 
       {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-50 glass-strong px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-9 left-0 right-0 z-50 glass-strong px-4 py-3 flex items-center justify-between">
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 rounded-lg text-text-muted hover:text-text-primary
@@ -95,7 +105,7 @@ export function Dashboard() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="lg:hidden fixed inset-y-0 left-0 w-56 z-50 bg-void border-r border-border-subtle"
+              className="lg:hidden fixed top-9 bottom-0 left-0 w-56 z-50 bg-void border-r border-border-subtle"
             >
               <Sidebar
                 activeView={activeView}
@@ -112,7 +122,7 @@ export function Dashboard() {
 
       {/* Main content */}
       <main className="flex-1 lg:ml-56 relative z-10 min-w-0 w-full">
-        <div className="max-w-3xl mx-auto px-4 lg:px-8 pt-20 lg:pt-8 pb-16">
+        <div className="max-w-3xl mx-auto px-4 lg:px-8 pt-28 lg:pt-16 pb-16">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
