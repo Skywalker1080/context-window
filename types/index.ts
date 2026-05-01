@@ -2,7 +2,7 @@
 
 export type LinkStatus = "inbox" | "library" | "deleted";
 
-export type View = "inbox" | "library" | "insights" | "collection";
+export type View = "inbox" | "library" | "insights" | "collection" | "changelog";
 
 export interface LinkItem {
   id: string;

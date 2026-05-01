@@ -9,6 +9,7 @@ import { InboxQueue } from "@/components/InboxQueue";
 import { LibraryView } from "@/components/LibraryView";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { CollectionView } from "@/components/CollectionView";
+import { ChangelogView } from "./ChangelogView";
 import type { View } from "@/types";
 
 export function Dashboard() {
@@ -39,6 +40,8 @@ export function Dashboard() {
         ) : (
           <LibraryView />
         );
+      case "changelog":
+        return <ChangelogView />;
       default:
         return <InboxQueue />;
     }

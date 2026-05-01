@@ -13,6 +13,7 @@ import {
   Pencil,
   Trash2,
   Check,
+  ArrowBigDown,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +49,21 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
   // Context menu state
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Changelog state
+  const [showChangelog, setShowChangelog] = useState(false);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("changelog_v1.1_dismissed");
+    if (!dismissed) {
+      setShowChangelog(true);
+    }
+  }, []);
+
+  const dismissChangelog = () => {
+    localStorage.setItem("changelog_v1.1_dismissed", "true");
+    setShowChangelog(false);
+  };
 
   // Auto-focus create input
   useEffect(() => {
@@ -383,6 +399,40 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
           )}
         </div>
       </div>
+
+      {/* Changelog */}
+      <AnimatePresence>
+        {showChangelog && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: "auto", marginBottom: 12 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            className="px-3 overflow-hidden"
+          >
+            <div className="relative p-3 rounded-xl bg-surface-raised/40 border border-border-subtle group hover:border-accent-violet/30 transition-colors cursor-pointer"
+                 onClick={() => onViewChange("changelog")}
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismissChangelog();
+                }}
+                className="absolute top-2 right-2 p-1 rounded-md text-text-ghost hover:text-text-primary hover:bg-surface-overlay transition-colors z-10"
+                title="Dismiss"
+              >
+                <X size={12} />
+              </button>
+              <div className="flex items-center gap-2 mb-1">
+                <ArrowBigDown size={14} className="text-accent-violet" />
+                <span className="text-xs font-bold text-text-primary tracking-tight">What's new</span>
+              </div>
+              <p className="text-[10px] text-text-secondary leading-tight pr-6">
+                Version v1.1.0 is here. Click to view the latest updates!
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Install App CTA */}
       <AnimatePresence>
