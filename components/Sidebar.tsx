@@ -36,6 +36,11 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
   const { canInstall, showIOSGuide, install, dismissIOSGuide } =
     usePWAInstall();
 
+  const isGoogleUser = !!user?.providerData?.some((p) => p.providerId === "google.com");
+  const userInitial = (
+    (user?.displayName?.trim()?.[0] ?? user?.email?.trim()?.[0] ?? "U")
+  ).toUpperCase();
+
   // Collection creation state
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
@@ -542,13 +547,19 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
       {/* User */}
       <div className="mt-auto pt-4 border-t border-border-subtle">
         <div className="flex items-center gap-3 px-3 py-2">
-          {user?.photoURL ? (
+          {isGoogleUser && user?.photoURL ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={user.photoURL}
               alt=""
               className="w-7 h-7 rounded-lg object-cover"
             />
+          ) : !isGoogleUser ? (
+            <div className="w-7 h-7 rounded-lg bg-accent-violet-soft flex items-center justify-center">
+              <span className="text-[11px] font-bold text-accent-violet">
+                {userInitial}
+              </span>
+            </div>
           ) : (
             <div className="w-7 h-7 rounded-lg bg-accent-violet-soft flex items-center justify-center">
               <User size={14} className="text-accent-violet" />
