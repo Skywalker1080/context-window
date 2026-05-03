@@ -4,24 +4,17 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
 } from "react";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  serverTimestamp,
-  Timestamp,
-} from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import type {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import { cacheLinks, loadCachedLinks } from "@/lib/offline-cache";
 import { useAuth } from "./AuthContext";
 import type { LinkItem, LinkStatus, FilterState, InsightData } from "@/types";
 
@@ -49,6 +42,7 @@ interface LinksContextValue {
 const LinksContext = createContext<LinksContextValue | null>(null);
 
 const INBOX_LIMIT = 9;
+const LINKS_TABLE = "links";
 
 export const DEFAULT_CATEGORIES = [
   { name: "Youtube", icon: "" },
@@ -62,6 +56,40 @@ export const DEFAULT_CATEGORIES = [
   { name: "Website", icon: "" },
 ];
 
+interface LinkRow {
+  id: string;
+  user_id: string;
+  url: string;
+  title: string | null;
+  description: string | null;
+  favicon: string | null;
+  note: string | null;
+  status: LinkStatus;
+  category: string | null;
+  tags: string[] | null;
+  collection_ids: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToLink(row: LinkRow): LinkItem {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    url: row.url,
+    title: row.title ?? "",
+    description: row.description ?? "",
+    favicon: row.favicon ?? "",
+    note: row.note ?? "",
+    status: row.status,
+    category: row.category ?? "Website",
+    tags: row.tags ?? [],
+    collectionIds: row.collection_ids ?? [],
+    createdAt: new Date(row.created_at).getTime(),
+    updatedAt: new Date(row.updated_at).getTime(),
+  };
+}
+
 async function fetchUrlMetadata(url: string) {
   const fallback = {
     title: new URL(url).hostname.replace("www.", ""),
@@ -69,7 +97,6 @@ async function fetchUrlMetadata(url: string) {
     favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`,
   };
 
-  // Special handler for YouTube — they block HTML scrapers, use oEmbed instead
   if (url.includes("youtube.com") || url.includes("youtu.be")) {
     try {
       const response = await fetch(
@@ -84,20 +111,18 @@ async function fetchUrlMetadata(url: string) {
         };
       }
     } catch {
-      // fall through to metascraper
+      // fall through to scraper
     }
   }
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const response = await fetch(
       `/api/scrape?url=${encodeURIComponent(url)}`,
       { signal: controller.signal }
     );
     clearTimeout(timeoutId);
-
     if (!response.ok) return fallback;
     const data = await response.json();
     return {
@@ -112,20 +137,20 @@ async function fetchUrlMetadata(url: string) {
 
 function categorizeUrl(url: string): string {
   const hostname = new URL(url).hostname.toLowerCase();
-  
   if (hostname.includes("youtube.com") || hostname.includes("youtu.be"))
     return "Youtube";
   if (hostname.includes("github.com") || hostname.includes("gitlab.com"))
     return "Github";
   if (hostname.includes("twitter.com") || hostname.includes("x.com"))
     return "Twitter (X)";
-  if (hostname.includes("reddit.com"))
-    return "Reddit";
-  if (hostname.includes("substack.com"))
-    return "Substack";
-  if (hostname.includes("docs.") || url.includes("/docs") || url.includes("/documentation"))
+  if (hostname.includes("reddit.com")) return "Reddit";
+  if (hostname.includes("substack.com")) return "Substack";
+  if (
+    hostname.includes("docs.") ||
+    url.includes("/docs") ||
+    url.includes("/documentation")
+  )
     return "Documentation";
-
   return "Website";
 }
 
@@ -140,56 +165,87 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     status: "library",
   });
 
+  const linksRef = useRef<LinkItem[]>([]);
+  linksRef.current = links;
+
   useEffect(() => {
     if (!user) {
       setLinks([]);
       setLoading(false);
       return;
     }
+    const uid = user.uid;
+    let cancelled = false;
+    let channel: RealtimeChannel | null = null;
 
-    const q = query(
-      collection(db, "links"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const applyEvent = (
+      payload: RealtimePostgresChangesPayload<LinkRow>
+    ) => {
+      setLinks((prev) => {
+        let next = prev;
+        if (payload.eventType === "INSERT") {
+          const incoming = rowToLink(payload.new);
+          if (!prev.some((l) => l.id === incoming.id)) {
+            next = [incoming, ...prev];
+          }
+        } else if (payload.eventType === "UPDATE") {
+          const incoming = rowToLink(payload.new);
+          next = prev.map((l) => (l.id === incoming.id ? incoming : l));
+        } else if (payload.eventType === "DELETE") {
+          const oldId = (payload.old as Partial<LinkRow>)?.id;
+          if (oldId) next = prev.filter((l) => l.id !== oldId);
+        }
+        cacheLinks(uid, next);
+        return next;
+      });
+    };
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const items: LinkItem[] = snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            url: data.url,
-            title: data.title || "",
-            description: data.description || "",
-            favicon: data.favicon || "",
-            note: data.note || "",
-            status: data.status || "inbox",
-            category: data.category || "Website",
-            tags: data.tags || [],
-            collectionIds: data.collectionIds || [],
-            createdAt:
-              data.createdAt instanceof Timestamp
-                ? data.createdAt.toMillis()
-                : Date.now(),
-            updatedAt:
-              data.updatedAt instanceof Timestamp
-                ? data.updatedAt.toMillis()
-                : Date.now(),
-            userId: data.userId,
-          };
-        });
-        setLinks(items);
-        setLoading(false);
-      },
-      (error) => {
-        console.error("Firestore listener error:", error);
+    (async () => {
+      const cached = await loadCachedLinks(uid);
+      if (cancelled) return;
+      if (cached.length) {
+        const sorted = [...cached].sort((a, b) => b.createdAt - a.createdAt);
+        setLinks(sorted);
         setLoading(false);
       }
-    );
 
-    return unsubscribe;
+      const { data, error } = await supabase
+        .from(LINKS_TABLE)
+        .select("*")
+        .eq("user_id", uid)
+        .order("created_at", { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error("Supabase select(links) error:", error);
+        setLoading(false);
+      } else if (data) {
+        const fresh = (data as LinkRow[]).map(rowToLink);
+        setLinks(fresh);
+        setLoading(false);
+        cacheLinks(uid, fresh);
+      }
+
+      channel = supabase
+        .channel(`links:${uid}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: LINKS_TABLE,
+            filter: `user_id=eq.${uid}`,
+          },
+          (payload) =>
+            applyEvent(payload as RealtimePostgresChangesPayload<LinkRow>)
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [user]);
 
   const inboxLinks = links.filter((l) => l.status === "inbox");
@@ -199,7 +255,10 @@ export function LinksProvider({ children }: { children: ReactNode }) {
   const filteredLinks = links.filter((l) => {
     if (l.status !== filter.status) return false;
     if (filter.category && l.category !== filter.category) return false;
-    if (filter.tags.length > 0 && !filter.tags.every((t) => l.tags.includes(t)))
+    if (
+      filter.tags.length > 0 &&
+      !filter.tags.every((t) => l.tags.includes(t))
+    )
       return false;
     if (filter.search) {
       const q = filter.search.toLowerCase();
@@ -217,7 +276,10 @@ export function LinksProvider({ children }: { children: ReactNode }) {
   const addLink = useCallback(
     async (url: string, note?: string, tags?: string[]) => {
       if (!user) return;
-      if (inboxLinks.length >= INBOX_LIMIT) {
+      if (
+        linksRef.current.filter((l) => l.status === "inbox").length >=
+        INBOX_LIMIT
+      ) {
         throw new Error(
           `Inbox is full! Triage existing links before adding more. (${INBOX_LIMIT} max)`
         );
@@ -227,40 +289,49 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       const fallbackTitle = new URL(url).hostname.replace("www.", "");
       const fallbackFavicon = `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`;
 
-      // 1. Instantly save minimal data to unblock UI
-      const docRef = await addDoc(collection(db, "links"), {
-        url,
-        title: fallbackTitle,
-        description: "",
-        favicon: fallbackFavicon,
-        note: note || "",
-        status: "inbox" as LinkStatus,
-        category,
-        tags: tags || [],
-        createdAt: Timestamp.now(),
-        updatedAt: Timestamp.now(),
-        userId: user.uid,
-      });
+      const { data, error } = await supabase
+        .from(LINKS_TABLE)
+        .insert({
+          user_id: user.uid,
+          url,
+          title: fallbackTitle,
+          description: "",
+          favicon: fallbackFavicon,
+          note: note ?? "",
+          status: "inbox",
+          category,
+          tags: tags ?? [],
+          collection_ids: [],
+        })
+        .select("id")
+        .single();
 
-      // 2. Fetch rich metadata in background
+      if (error || !data) {
+        throw error ?? new Error("Failed to create link");
+      }
+
+      const newId = (data as { id: string }).id;
+
       fetchUrlMetadata(url)
         .then(async (metadata) => {
-          // Only update if we got better data
           if (
             metadata.title !== fallbackTitle ||
             metadata.description ||
             metadata.favicon !== fallbackFavicon
           ) {
-            await updateDoc(docRef, {
-              title: metadata.title || fallbackTitle,
-              description: metadata.description || "",
-              favicon: metadata.favicon || fallbackFavicon,
-            });
+            await supabase
+              .from(LINKS_TABLE)
+              .update({
+                title: metadata.title || fallbackTitle,
+                description: metadata.description || "",
+                favicon: metadata.favicon || fallbackFavicon,
+              })
+              .eq("id", newId);
           }
         })
         .catch((err) => console.error("Failed to fetch metadata:", err));
     },
-    [user, inboxLinks.length]
+    [user]
   );
 
   const triageLink = useCallback(
@@ -270,38 +341,50 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       category?: string,
       tags?: string[]
     ) => {
-      const updates: Record<string, unknown> = {
-        status,
-        updatedAt: Timestamp.now(),
-      };
+      const updates: Record<string, unknown> = { status };
       if (category) updates.category = category;
       if (tags) updates.tags = tags;
-      await updateDoc(doc(db, "links", id), updates);
+      const { error } = await supabase
+        .from(LINKS_TABLE)
+        .update(updates)
+        .eq("id", id);
+      if (error) throw error;
     },
     []
   );
 
   const updateLink = useCallback(
     async (id: string, updates: Partial<LinkItem>) => {
-      const { id: _id, ...rest } = updates;
-      void _id;
-      await updateDoc(doc(db, "links", id), {
-        ...rest,
-        updatedAt: Timestamp.now(),
-      });
+      const row: Record<string, unknown> = {};
+      if (updates.url !== undefined) row.url = updates.url;
+      if (updates.title !== undefined) row.title = updates.title;
+      if (updates.description !== undefined)
+        row.description = updates.description;
+      if (updates.favicon !== undefined) row.favicon = updates.favicon;
+      if (updates.note !== undefined) row.note = updates.note;
+      if (updates.status !== undefined) row.status = updates.status;
+      if (updates.category !== undefined) row.category = updates.category;
+      if (updates.tags !== undefined) row.tags = updates.tags;
+      if (updates.collectionIds !== undefined)
+        row.collection_ids = updates.collectionIds;
+      const { error } = await supabase
+        .from(LINKS_TABLE)
+        .update(row)
+        .eq("id", id);
+      if (error) throw error;
     },
     []
   );
 
   const deleteLink = useCallback(async (id: string) => {
-    await deleteDoc(doc(db, "links", id));
+    const { error } = await supabase.from(LINKS_TABLE).delete().eq("id", id);
+    if (error) throw error;
   }, []);
 
   const setFilter = useCallback((partial: Partial<FilterState>) => {
     setFilterState((prev) => ({ ...prev, ...partial }));
   }, []);
 
-  // Compute insights
   const insights: InsightData = {
     totalLinks: links.length,
     inboxCount: inboxLinks.length,
@@ -314,8 +397,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     })).filter((c) => c.count > 0),
     recentActivity: (() => {
       const days = 7;
-      const result: { date: string; captured: number; processed: number }[] =
-        [];
+      const result: { date: string; captured: number; processed: number }[] = [];
       for (let i = days - 1; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
