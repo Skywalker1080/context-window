@@ -15,6 +15,7 @@ import type {
 } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { cacheLinks, loadCachedLinks } from "@/lib/offline-cache";
+import { assertOnline } from "@/lib/offline";
 import { useAuth } from "./AuthContext";
 import type { LinkItem, LinkStatus, FilterState, InsightData } from "@/types";
 
@@ -34,6 +35,12 @@ interface LinksContextValue {
   ) => Promise<void>;
   updateLink: (id: string, updates: Partial<LinkItem>) => Promise<void>;
   deleteLink: (id: string) => Promise<void>;
+  addLinkToCollection: (linkId: string, collectionId: string) => Promise<void>;
+  removeLinkFromCollection: (
+    linkId: string,
+    collectionId: string
+  ) => Promise<void>;
+  removeCollectionFromAllLinks: (collectionId: string) => void;
   insights: InsightData;
   loading: boolean;
   inboxFull: boolean;
@@ -170,6 +177,35 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     linksRef.current = links;
   }, [links]);
 
+  const upsertLocal = useCallback(
+    (incoming: LinkItem) => {
+      if (!user) return;
+      const uid = user.uid;
+      setLinks((prev) => {
+        const exists = prev.some((l) => l.id === incoming.id);
+        const next = exists
+          ? prev.map((l) => (l.id === incoming.id ? incoming : l))
+          : [incoming, ...prev];
+        cacheLinks(uid, next);
+        return next;
+      });
+    },
+    [user]
+  );
+
+  const removeLocal = useCallback(
+    (id: string) => {
+      if (!user) return;
+      const uid = user.uid;
+      setLinks((prev) => {
+        const next = prev.filter((l) => l.id !== id);
+        cacheLinks(uid, next);
+        return next;
+      });
+    },
+    [user]
+  );
+
   useEffect(() => {
     if (!user) {
       setLinks([]);
@@ -278,6 +314,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
   const addLink = useCallback(
     async (url: string, note?: string, tags?: string[]) => {
       if (!user) return;
+      assertOnline("save links");
       if (
         linksRef.current.filter((l) => l.status === "inbox").length >=
         INBOX_LIMIT
@@ -305,14 +342,16 @@ export function LinksProvider({ children }: { children: ReactNode }) {
           tags: tags ?? [],
           collection_ids: [],
         })
-        .select("id")
+        .select("*")
         .single();
 
       if (error || !data) {
         throw error ?? new Error("Failed to create link");
       }
 
-      const newId = (data as { id: string }).id;
+      const inserted = rowToLink(data as LinkRow);
+      upsertLocal(inserted);
+      const newId = inserted.id;
 
       fetchUrlMetadata(url)
         .then(async (metadata) => {
@@ -321,19 +360,22 @@ export function LinksProvider({ children }: { children: ReactNode }) {
             metadata.description ||
             metadata.favicon !== fallbackFavicon
           ) {
-            await supabase
+            const { data: updated } = await supabase
               .from(LINKS_TABLE)
               .update({
                 title: metadata.title || fallbackTitle,
                 description: metadata.description || "",
                 favicon: metadata.favicon || fallbackFavicon,
               })
-              .eq("id", newId);
+              .eq("id", newId)
+              .select("*")
+              .single();
+            if (updated) upsertLocal(rowToLink(updated as LinkRow));
           }
         })
         .catch((err) => console.error("Failed to fetch metadata:", err));
     },
-    [user]
+    [user, upsertLocal]
   );
 
   const triageLink = useCallback(
@@ -343,20 +385,41 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       category?: string,
       tags?: string[]
     ) => {
+      assertOnline("move links");
+      const existing = linksRef.current.find((l) => l.id === id);
+      if (existing) {
+        upsertLocal({
+          ...existing,
+          status,
+          category: category ?? existing.category,
+          tags: tags ?? existing.tags,
+          updatedAt: Date.now(),
+        });
+      }
+
       const updates: Record<string, unknown> = { status };
       if (category) updates.category = category;
       if (tags) updates.tags = tags;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from(LINKS_TABLE)
         .update(updates)
-        .eq("id", id);
+        .eq("id", id)
+        .select("*")
+        .single();
       if (error) throw error;
+      if (data) upsertLocal(rowToLink(data as LinkRow));
     },
-    []
+    [upsertLocal]
   );
 
   const updateLink = useCallback(
     async (id: string, updates: Partial<LinkItem>) => {
+      assertOnline("update links");
+      const existing = linksRef.current.find((l) => l.id === id);
+      if (existing) {
+        upsertLocal({ ...existing, ...updates, updatedAt: Date.now() });
+      }
+
       const row: Record<string, unknown> = {};
       if (updates.url !== undefined) row.url = updates.url;
       if (updates.title !== undefined) row.title = updates.title;
@@ -369,19 +432,89 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       if (updates.tags !== undefined) row.tags = updates.tags;
       if (updates.collectionIds !== undefined)
         row.collection_ids = updates.collectionIds;
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from(LINKS_TABLE)
         .update(row)
-        .eq("id", id);
+        .eq("id", id)
+        .select("*")
+        .single();
       if (error) throw error;
+      if (data) upsertLocal(rowToLink(data as LinkRow));
     },
-    []
+    [upsertLocal]
   );
 
-  const deleteLink = useCallback(async (id: string) => {
-    const { error } = await supabase.from(LINKS_TABLE).delete().eq("id", id);
-    if (error) throw error;
-  }, []);
+  const deleteLink = useCallback(
+    async (id: string) => {
+      assertOnline("delete links");
+      removeLocal(id);
+      const { error } = await supabase.from(LINKS_TABLE).delete().eq("id", id);
+      if (error) throw error;
+    },
+    [removeLocal]
+  );
+
+  const addLinkToCollection = useCallback(
+    async (linkId: string, collectionId: string) => {
+      const existing = linksRef.current.find((l) => l.id === linkId);
+      if (!existing) return;
+      if (existing.collectionIds.includes(collectionId)) return;
+      assertOnline("update collections");
+      const nextIds = [...existing.collectionIds, collectionId];
+      upsertLocal({ ...existing, collectionIds: nextIds, updatedAt: Date.now() });
+
+      const { data, error } = await supabase
+        .from(LINKS_TABLE)
+        .update({ collection_ids: nextIds })
+        .eq("id", linkId)
+        .select("*")
+        .single();
+      if (error) throw error;
+      if (data) upsertLocal(rowToLink(data as LinkRow));
+    },
+    [upsertLocal]
+  );
+
+  const removeLinkFromCollection = useCallback(
+    async (linkId: string, collectionId: string) => {
+      const existing = linksRef.current.find((l) => l.id === linkId);
+      if (!existing) return;
+      if (!existing.collectionIds.includes(collectionId)) return;
+      assertOnline("update collections");
+      const nextIds = existing.collectionIds.filter((c) => c !== collectionId);
+      upsertLocal({ ...existing, collectionIds: nextIds, updatedAt: Date.now() });
+
+      const { data, error } = await supabase
+        .from(LINKS_TABLE)
+        .update({ collection_ids: nextIds })
+        .eq("id", linkId)
+        .select("*")
+        .single();
+      if (error) throw error;
+      if (data) upsertLocal(rowToLink(data as LinkRow));
+    },
+    [upsertLocal]
+  );
+
+  const removeCollectionFromAllLinks = useCallback(
+    (collectionId: string) => {
+      if (!user) return;
+      const uid = user.uid;
+      setLinks((prev) => {
+        const next = prev.map((l) =>
+          l.collectionIds.includes(collectionId)
+            ? {
+                ...l,
+                collectionIds: l.collectionIds.filter((c) => c !== collectionId),
+              }
+            : l
+        );
+        cacheLinks(uid, next);
+        return next;
+      });
+    },
+    [user]
+  );
 
   const setFilter = useCallback((partial: Partial<FilterState>) => {
     setFilterState((prev) => ({ ...prev, ...partial }));
@@ -452,6 +585,9 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         triageLink,
         updateLink,
         deleteLink,
+        addLinkToCollection,
+        removeLinkFromCollection,
+        removeCollectionFromAllLinks,
         insights,
         loading,
         inboxFull,

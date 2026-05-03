@@ -17,7 +17,9 @@ import {
   cacheCollections,
   loadCachedCollections,
 } from "@/lib/offline-cache";
+import { assertOnline } from "@/lib/offline";
 import { useAuth } from "./AuthContext";
+import { useLinks } from "./LinksContext";
 import type { Collection } from "@/types";
 
 interface CollectionsContextValue {
@@ -36,7 +38,6 @@ interface CollectionsContextValue {
 const CollectionsContext = createContext<CollectionsContextValue | null>(null);
 
 const COLLECTIONS_TABLE = "collections";
-const LINKS_TABLE = "links";
 
 interface CollectionRow {
   id: string;
@@ -58,8 +59,42 @@ function rowToCollection(row: CollectionRow): Collection {
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const {
+    addLinkToCollection,
+    removeLinkFromCollection,
+    removeCollectionFromAllLinks,
+  } = useLinks();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const upsertLocal = useCallback(
+    (incoming: Collection) => {
+      if (!user) return;
+      const uid = user.uid;
+      setCollections((prev) => {
+        const exists = prev.some((c) => c.id === incoming.id);
+        const next = exists
+          ? prev.map((c) => (c.id === incoming.id ? incoming : c))
+          : [...prev, incoming].sort((a, b) => a.createdAt - b.createdAt);
+        cacheCollections(uid, next);
+        return next;
+      });
+    },
+    [user]
+  );
+
+  const removeLocal = useCallback(
+    (id: string) => {
+      if (!user) return;
+      const uid = user.uid;
+      setCollections((prev) => {
+        const next = prev.filter((c) => c.id !== id);
+        cacheCollections(uid, next);
+        return next;
+      });
+    },
+    [user]
+  );
 
   useEffect(() => {
     if (!user) {
@@ -148,32 +183,42 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
   const createCollection = useCallback(
     async (name: string): Promise<string> => {
       if (!user) throw new Error("Not authenticated");
+      assertOnline("create collections");
       const { data, error } = await supabase
         .from(COLLECTIONS_TABLE)
         .insert({ user_id: user.uid, name: name.trim() })
-        .select("id")
+        .select("*")
         .single();
       if (error || !data)
         throw error ?? new Error("Failed to create collection");
-      return (data as { id: string }).id;
+      const created = rowToCollection(data as CollectionRow);
+      upsertLocal(created);
+      return created.id;
     },
-    [user]
+    [user, upsertLocal]
   );
 
   const renameCollection = useCallback(
     async (id: string, name: string) => {
-      const { error } = await supabase
+      assertOnline("rename collections");
+      const { data, error } = await supabase
         .from(COLLECTIONS_TABLE)
         .update({ name: name.trim() })
-        .eq("id", id);
+        .eq("id", id)
+        .select("*")
+        .single();
       if (error) throw error;
+      if (data) upsertLocal(rowToCollection(data as CollectionRow));
     },
-    []
+    [upsertLocal]
   );
 
   const deleteCollection = useCallback(
     async (id: string) => {
       if (!user) throw new Error("Not authenticated");
+      assertOnline("delete collections");
+      removeLocal(id);
+      removeCollectionFromAllLinks(id);
       const { error: rpcError } = await supabase.rpc(
         "remove_collection_id_from_links",
         { p_collection_id: id }
@@ -185,49 +230,7 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
         .eq("id", id);
       if (error) throw error;
     },
-    [user]
-  );
-
-  const addLinkToCollection = useCallback(
-    async (linkId: string, collectionId: string) => {
-      const { data, error: fetchError } = await supabase
-        .from(LINKS_TABLE)
-        .select("collection_ids")
-        .eq("id", linkId)
-        .single();
-      if (fetchError || !data) throw fetchError ?? new Error("Link not found");
-      const current: string[] =
-        (data as { collection_ids: string[] | null }).collection_ids ?? [];
-      if (current.includes(collectionId)) return;
-      const next = [...current, collectionId];
-      const { error } = await supabase
-        .from(LINKS_TABLE)
-        .update({ collection_ids: next })
-        .eq("id", linkId);
-      if (error) throw error;
-    },
-    []
-  );
-
-  const removeLinkFromCollection = useCallback(
-    async (linkId: string, collectionId: string) => {
-      const { data, error: fetchError } = await supabase
-        .from(LINKS_TABLE)
-        .select("collection_ids")
-        .eq("id", linkId)
-        .single();
-      if (fetchError || !data) throw fetchError ?? new Error("Link not found");
-      const current: string[] =
-        (data as { collection_ids: string[] | null }).collection_ids ?? [];
-      if (!current.includes(collectionId)) return;
-      const next = current.filter((c) => c !== collectionId);
-      const { error } = await supabase
-        .from(LINKS_TABLE)
-        .update({ collection_ids: next })
-        .eq("id", linkId);
-      if (error) throw error;
-    },
-    []
+    [user, removeLocal, removeCollectionFromAllLinks]
   );
 
   return (

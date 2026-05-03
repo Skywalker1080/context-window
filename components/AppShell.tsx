@@ -5,6 +5,7 @@ import { LinksProvider } from "@/contexts/LinksContext";
 import { CollectionsProvider } from "@/contexts/CollectionsContext";
 import { AuthPage } from "@/components/AuthPage";
 import { Dashboard } from "@/components/Dashboard";
+import { Toaster } from "@/components/Toaster";
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -88,6 +89,7 @@ export default function AppShell() {
   return (
     <AuthProvider>
       <AppContent />
+      <Toaster />
     </AuthProvider>
   );
 }
