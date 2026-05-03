@@ -36,7 +36,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
   const { canInstall, showIOSGuide, install, dismissIOSGuide } =
     usePWAInstall();
 
-  const isGoogleUser = !!user?.providerData?.some((p) => p.providerId === "google.com");
+  const isGoogleUser = user?.provider === "google";
   const userInitial = (
     (user?.displayName?.trim()?.[0] ?? user?.email?.trim()?.[0] ?? "U")
   ).toUpperCase();

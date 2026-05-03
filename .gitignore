@@ -21,6 +21,8 @@
 /build
 
 # misc
+firestore-export.json
+*firebase-adminsdk*.json
 .DS_Store
 *.pem
 
@@ -41,3 +43,7 @@ yarn-error.log*
 next-env.d.ts
 
 /docs
+
+# Supabase CLI runtime
+supabase/.branches
+supabase/.temp

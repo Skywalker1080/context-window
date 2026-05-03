@@ -13,7 +13,7 @@ export function ChangelogView() {
         <div>
           <h2 className="text-sm font-semibold text-text-primary">What's New</h2>
           <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-            Version 1.1.0
+            Version 1.2.0
           </p>
         </div>
       </div>
@@ -28,10 +28,10 @@ export function ChangelogView() {
           <div className="flex items-start gap-4">
             <div>
               <h3 className="text-sm font-bold text-text-primary mb-1.5 tracking-tight">
-                Updated Login page with beautiful UI
+                Migrated to a new server
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                We've completely redesigned the authentication experience. The new login page features a stunning, immersive void aesthetic with dynamic network animations, optimized Next.js Image integration, and graceful error handling for a premium first impression.
+                We've completed a full backend migration to a faster, more reliable home. Your library, collections, and sessions all came along — nothing for you to do. Expect snappier saves, smoother realtime sync across tabs, and a graceful read-only mode when you go offline.
               </p>
             </div>
           </div>
@@ -43,7 +43,7 @@ export function ChangelogView() {
                 Minor bugs fixed
               </h3>
               <p className="text-xs text-text-secondary leading-relaxed">
-                Squashed several pesky bugs under the hood. Improved error state feedback, fixed browser autofill styling issues that broke the dark theme, and enhanced overall stability across the dashboard.
+                Squashed several pesky bugs under the hood. Tighter error feedback, faster UI updates after saves and edits, cleaner offline behaviour, and better stability across the dashboard.
               </p>
             </div>
           </div>

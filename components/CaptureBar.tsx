@@ -9,6 +9,7 @@ import {
   ArrowUp,
 } from "lucide-react";
 import { useLinks } from "@/contexts/LinksContext";
+import { OfflineError } from "@/lib/offline";
 
 export function CaptureBar() {
   const { addLink, inboxFull, inboxLinks } = useLinks();
@@ -62,9 +63,11 @@ export function CaptureBar() {
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2000);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to add link"
-        );
+        if (err instanceof OfflineError) {
+          // Global toast already surfaced the offline message.
+        } else {
+          setError(err instanceof Error ? err.message : "Failed to add link");
+        }
       } finally {
         setIsSubmitting(false);
       }
