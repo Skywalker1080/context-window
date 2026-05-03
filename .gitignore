@@ -21,6 +21,8 @@
 /build
 
 # misc
+firestore-export.json
+*firebase-adminsdk*.json
 .DS_Store
 *.pem
 
