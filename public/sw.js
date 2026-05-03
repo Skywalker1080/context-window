@@ -1,7 +1,7 @@
 // PWA Service Worker
 // Handles caching and offline support
 
-const CACHE_NAME = "context-window-v5";
+const CACHE_NAME = "context-window-v6";
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -25,10 +25,10 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network-only / bypass for Firebase and API scraper calls
+  // Network-only / bypass for Supabase, realtime websockets, and API scraper calls
   if (
-    event.request.url.includes("firestore.googleapis.com") ||
-    event.request.url.includes("identitytoolkit.googleapis.com") ||
+    event.request.url.includes(".supabase.co") ||
+    event.request.url.includes(".supabase.in") ||
     event.request.url.includes("/api/scrape")
   ) {
     return;
