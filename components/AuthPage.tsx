@@ -198,22 +198,32 @@ export function AuthPage() {
       } else {
         await signUpWithEmail(email, password);
       }
-    } catch (err: any) {
-      const code = err?.code;
-      if (code === "auth/invalid-credential" || code === "auth/user-not-found" || code === "auth/wrong-password") {
-        setError("The email or password you entered is incorrect. Please check your credentials and try again.");
-      } else if (code === "auth/invalid-email") {
-        setError("Please enter a valid email address.");
-      } else if (code === "auth/email-already-in-use") {
-        setError("This email is already in use. Try signing in instead.");
-      } else if (code === "auth/weak-password") {
-        setError("Password should be at least 6 characters.");
-      } else {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "";
+      const lower = message.toLowerCase();
+      if (
+        lower.includes("invalid login credentials") ||
+        lower.includes("invalid email or password")
+      ) {
         setError(
-          err instanceof Error
-            ? err.message.replace("Firebase: ", "").replace(/\(auth\/.*\)/, "")
-            : "Something went wrong"
+          "The email or password you entered is incorrect. Please check your credentials and try again."
         );
+      } else if (
+        lower.includes("invalid email") ||
+        lower.includes("unable to validate email address")
+      ) {
+        setError("Please enter a valid email address.");
+      } else if (
+        lower.includes("user already registered") ||
+        lower.includes("already been registered")
+      ) {
+        setError("This email is already in use. Try signing in instead.");
+      } else if (lower.includes("password should be at least")) {
+        setError("Password should be at least 6 characters.");
+      } else if (lower.includes("rate limit")) {
+        setError("Too many attempts. Please wait a moment and try again.");
+      } else {
+        setError(message || "Something went wrong");
       }
     } finally {
       setLoading(false);
@@ -225,11 +235,15 @@ export function AuthPage() {
     try {
       await signInWithGoogle();
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message.replace("Firebase: ", "").replace(/\(auth\/.*\)/, "")
-          : "Something went wrong"
-      );
+      const message = err instanceof Error ? err.message : "";
+      const lower = message.toLowerCase();
+      if (lower.includes("provider is not enabled")) {
+        setError(
+          "Google sign-in is not yet configured. Please use email and password for now."
+        );
+      } else {
+        setError(message || "Something went wrong");
+      }
     }
   };
 
