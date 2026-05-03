@@ -1,7 +1,7 @@
 // PWA Service Worker
 // Handles caching and offline support
 
-const CACHE_NAME = "context-window-v6";
+const CACHE_NAME = "context-window-v7";
 const STATIC_ASSETS = ["/", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
