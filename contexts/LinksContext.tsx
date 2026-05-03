@@ -166,7 +166,9 @@ export function LinksProvider({ children }: { children: ReactNode }) {
   });
 
   const linksRef = useRef<LinkItem[]>([]);
-  linksRef.current = links;
+  useEffect(() => {
+    linksRef.current = links;
+  }, [links]);
 
   useEffect(() => {
     if (!user) {
