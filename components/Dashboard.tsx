@@ -10,6 +10,7 @@ import { LibraryView } from "@/components/LibraryView";
 import { InsightsPanel } from "@/components/InsightsPanel";
 import { CollectionView } from "@/components/CollectionView";
 import { ChangelogView } from "./ChangelogView";
+import { SettingsView } from "@/components/SettingsView";
 import type { View } from "@/types";
 
 export function Dashboard() {
@@ -42,6 +43,8 @@ export function Dashboard() {
         );
       case "changelog":
         return <ChangelogView />;
+      case "settings":
+        return <SettingsView />;
       default:
         return <InboxQueue />;
     }
@@ -119,7 +122,7 @@ export function Dashboard() {
             transition={{ delay: 0.1 }}
             className="mb-8"
           >
-            <CaptureBar />
+            {activeView !== "settings" && <CaptureBar />}
           </motion.div>
 
           <AnimatePresence mode="wait">

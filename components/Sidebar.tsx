@@ -14,6 +14,8 @@ import {
   Trash2,
   Check,
   ArrowBigDown,
+  Settings,
+  ChevronUp,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +60,10 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
   // Changelog state
   const [showChangelog, setShowChangelog] = useState(false);
 
+  // Profile menu state
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const dismissed = localStorage.getItem("changelog_v1.1_dismissed");
     if (!dismissed) {
@@ -86,10 +92,13 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpenId(null);
       }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+        setProfileMenuOpen(false);
+      }
     };
-    if (menuOpenId) document.addEventListener("mousedown", handler);
+    if (menuOpenId || profileMenuOpen) document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpenId]);
+  }, [menuOpenId, profileMenuOpen]);
 
   const handleCreate = async () => {
     const name = newName.trim();
@@ -432,7 +441,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
                 <span className="text-xs font-bold text-text-primary tracking-tight">What's new</span>
               </div>
               <p className="text-[10px] text-text-secondary leading-tight pr-6">
-                Version v1.1.0 is here. Click to view the latest updates!
+                Version v1.2.0 is here. Click to view the latest updates!
               </p>
             </div>
           </motion.div>
@@ -545,43 +554,81 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
       </AnimatePresence>
 
       {/* User */}
-      <div className="mt-auto pt-4 border-t border-border-subtle">
-        <div className="flex items-center gap-3 px-3 py-2">
+      <div className="mt-auto pt-4 border-t border-border-subtle relative" ref={profileMenuRef}>
+        <AnimatePresence>
+          {profileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.15 }}
+              className="absolute bottom-full left-3 right-3 mb-2 py-1 z-50
+                         glass-strong rounded-xl shadow-xl border border-border-subtle"
+            >
+              <button
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  onViewChange("settings");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text-secondary
+                           hover:text-text-primary hover:bg-surface-raised/50 transition-colors"
+              >
+                <Settings size={16} className="text-text-muted" />
+                Settings
+              </button>
+              <div className="h-px bg-border-subtle my-1 mx-2" />
+              <button
+                onClick={() => {
+                  setProfileMenuOpen(false);
+                  signOut();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-text-secondary
+                           hover:text-accent-rose hover:bg-accent-rose-soft transition-colors"
+              >
+                <LogOut size={16} className="text-accent-rose/70" />
+                Log out
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        <button
+          onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+          className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
+            ${profileMenuOpen ? "bg-surface-overlay" : "hover:bg-surface-raised/50"}`}
+        >
           {isGoogleUser && user?.photoURL ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={user.photoURL}
               alt=""
-              className="w-7 h-7 rounded-lg object-cover"
+              className="w-8 h-8 rounded-lg object-cover ring-1 ring-border-subtle"
             />
           ) : !isGoogleUser ? (
-            <div className="w-7 h-7 rounded-lg bg-accent-violet-soft flex items-center justify-center">
-              <span className="text-[11px] font-bold text-accent-violet">
+            <div className="w-8 h-8 rounded-lg bg-accent-violet-soft flex items-center justify-center ring-1 ring-border-subtle">
+              <span className="text-xs font-bold text-accent-violet">
                 {userInitial}
               </span>
             </div>
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-accent-violet-soft flex items-center justify-center">
-              <User size={14} className="text-accent-violet" />
+            <div className="w-8 h-8 rounded-lg bg-accent-violet-soft flex items-center justify-center ring-1 ring-border-subtle">
+              <User size={16} className="text-accent-violet" />
             </div>
           )}
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-text-secondary truncate">
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-sm font-medium text-text-primary truncate">
               {user?.displayName || user?.email?.split("@")[0] || "User"}
             </p>
-            <p className="text-[10px] text-text-ghost font-medium">
-              Beta Account
+            <p className="text-[11px] text-text-ghost font-medium truncate">
+              {user?.email || "Beta Account"}
             </p>
           </div>
-          <button
-            onClick={signOut}
-            className="p-1.5 rounded-lg text-text-ghost hover:text-accent-rose
-                       hover:bg-accent-rose-soft transition-all duration-200"
-            title="Sign out"
-          >
-            <LogOut size={14} />
-          </button>
-        </div>
+          <ChevronUp 
+            size={16} 
+            className={`text-text-ghost transition-transform duration-200 flex-shrink-0
+              ${profileMenuOpen ? "rotate-180" : ""}`}
+          />
+        </button>
       </div>
     </div>
   );

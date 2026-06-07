@@ -142,6 +142,11 @@ async function fetchUrlMetadata(url: string) {
   }
 }
 
+async function triggerEmbed(linkId: string) {
+  // AI search feature is currently disabled
+  return;
+}
+
 function categorizeUrl(url: string): string {
   const hostname = new URL(url).hostname.toLowerCase();
   if (hostname.includes("youtube.com") || hostname.includes("youtu.be"))
@@ -373,7 +378,10 @@ export function LinksProvider({ children }: { children: ReactNode }) {
             if (updated) upsertLocal(rowToLink(updated as LinkRow));
           }
         })
-        .catch((err) => console.error("Failed to fetch metadata:", err));
+        .catch((err) => console.error("Failed to fetch metadata:", err))
+        .finally(() => {
+          void triggerEmbed(newId);
+        });
     },
     [user, upsertLocal]
   );
@@ -440,6 +448,11 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         .single();
       if (error) throw error;
       if (data) upsertLocal(rowToLink(data as LinkRow));
+
+      const embedFields: (keyof LinkItem)[] = ["title", "description", "note", "tags"];
+      if (embedFields.some((f) => updates[f] !== undefined)) {
+        void triggerEmbed(id);
+      }
     },
     [upsertLocal]
   );

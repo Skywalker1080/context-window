@@ -28,6 +28,15 @@
 
 ### API Routes
 * `app/api/scrape/route.ts` — **Scraping Proxy.** Forwards metadata extraction requests to a standalone Railway service.
+* `app/api/embed/route.ts` — **Embedding Proxy.** Validates the user's Supabase access token (Bearer header), then forwards `{ link_id, user_id }` to the semantic-search microservice with `X-API-KEY: $API_SECRET`. Called fire-and-forget from `LinksContext` after `addLink` and any `updateLink` that touches embed-relevant fields.
+* `app/api/semantic-search/route.ts` — **Semantic Search Proxy.** Same auth pattern. Forwards `{ query, user_id, match_count, match_threshold }` to the microservice and returns `{ results: [{ link_id, similarity }] }`.
+* `app/api/backfill-embeddings/route.ts` — **Backfill Proxy.** Triggers bulk embedding for the current user's un-embedded links.
+
+> Required env vars for the proxies: `API_SECRET` (already set, shared with `/api/scrape`) and `SEMANTIC_SEARCH_SERVICE_URL` (Railway URL of the microservice — set this in Vercel and `.env.local`).
+
+### Standalone Services (separate repos / deployments)
+* **Scraper service** — Railway, called by `/api/scrape`.
+* **Semantic search service** — Python/FastAPI at `C:\Projects\context-window-ai`. Owns the `link_embeddings` table via Supabase service role key. Endpoints: `POST /embed`, `POST /search`, `POST /backfill`, `GET /health`. All non-health routes require `X-API-KEY` matching `API_SECRET`.
 
 ### UI Components (`/components`)
 * `AppShell.tsx` — Gatekeeper (Auth check). Mounts `<Toaster />` at the root so toasts and the offline banner persist across auth states.
@@ -58,7 +67,13 @@
 11. **Offline guard pattern.** Every mutation MUST call `assertOnline("verb-phrase")` BEFORE any optimistic state change. `assertOnline` emits a themed toast and throws `OfflineError`. Call sites that surface their own error UI (e.g. `CaptureBar`) should swallow `OfflineError` since the global toast already informs the user.
 
 ## Future Work
-* **pgvector / AI agents.** When the AI agent feature lands, add a separate migration that runs `create extension if not exists vector;` and adds an `embedding vector(N)` column or a sibling `link_embeddings` table.
+* **~~pgvector / AI agents.~~** ✅ Implemented. See `supabase/migrations/20260510000000_add_pgvector_embeddings.sql` (creates `link_embeddings`, HNSW cosine index, and the `match_links` RPC) and the standalone semantic-search microservice. Next step: LLM-powered query rewriting (extracting date filters, reformulating queries) — currently V1 embeds the raw query.
+
+## Embeddings Pipeline
+* **Embedding text:** `title + description + note + tags` (joined by newlines). The URL is intentionally excluded — two links with identical metadata should rank near each other.
+* **Idempotency:** the microservice hashes the embed text (SHA-256) into `link_embeddings.content_hash` and skips regeneration when the hash is unchanged. Calling `/api/embed` repeatedly for an unchanged link is free.
+* **Triggers:** `addLink` fires `/api/embed` after metadata fetch resolves (in `.finally`). `updateLink` fires it whenever `title`, `description`, `note`, or `tags` changes. Both calls are fire-and-forget — failures are swallowed because embedding is non-critical.
+* **RLS exception:** `link_embeddings` has only a SELECT policy for `authenticated`. All writes flow through the microservice using the service role key, which bypasses RLS but enforces `user_id` filtering in every query.
 
 ## Local Backup Tooling (Not Runtime)
 * `scripts/export-firestore.mjs` and the `firebase-admin` devDependency exist solely for one-off Firestore exports during the migration. Not part of the runtime path. Remove only when the user confirms the offline backup is no longer needed.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -9,16 +9,105 @@ import {
   X,
   Tag,
   FolderOpen,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
+import { supabase } from "@/lib/supabase";
+import type { LinkItem } from "@/types";
 import { LinkCard } from "./LinkCard";
+
+type AiHit = { linkId: string; similarity: number };
+
 export function LibraryView() {
-  const { filteredLinks, filter, setFilter, loading, insights } = useLinks();
+  const { links, filteredLinks, filter, setFilter, loading, insights } =
+    useLinks();
   const [showFilters, setShowFilters] = useState(false);
+
+  const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
+  const [aiHits, setAiHits] = useState<AiHit[] | null>(null);
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const requestIdRef = useRef(0);
 
   const allTags = Array.from(
     new Set(insights.topTags.map((t) => t.name))
   );
+
+  // Reset AI state whenever the toggle flips off, or the input is cleared.
+  useEffect(() => {
+    if (!aiSearchEnabled || !filter.search.trim()) {
+      requestIdRef.current++; // invalidate any in-flight request
+      setAiHits(null);
+      setAiSearching(false);
+      setAiError(null);
+    }
+  }, [aiSearchEnabled, filter.search]);
+
+  // Fires only when the user submits (Enter / search button), not on keystroke.
+  const runAiSearch = async () => {
+    const query = filter.search.trim();
+    if (!aiSearchEnabled || !query) return;
+    const id = ++requestIdRef.current;
+    setAiSearching(true);
+    setAiError(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setAiError("Sign in to use AI search");
+        return;
+      }
+      const res = await fetch("/api/semantic-search", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ query }),
+      });
+      if (id !== requestIdRef.current) return; // stale
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setAiError(body?.error || "Search failed");
+        setAiHits([]);
+        return;
+      }
+      const data = (await res.json()) as {
+        results: { link_id: string; similarity: number }[];
+      };
+      if (id !== requestIdRef.current) return;
+      setAiHits(
+        data.results.map((r) => ({
+          linkId: r.link_id,
+          similarity: r.similarity,
+        }))
+      );
+    } catch {
+      if (id !== requestIdRef.current) return;
+      setAiError("Could not reach search service");
+      setAiHits([]);
+    } finally {
+      if (id === requestIdRef.current) setAiSearching(false);
+    }
+  };
+
+  // Compose the visible list. AI mode: filter `links` by hits, sort by similarity.
+  // Otherwise use the existing client-side filteredLinks.
+  const visible: { link: LinkItem; similarity?: number }[] = useMemo(() => {
+    if (aiSearchEnabled && aiHits) {
+      const byId = new Map(links.map((l) => [l.id, l]));
+      return aiHits
+        .map((h) => {
+          const link = byId.get(h.linkId);
+          if (!link || link.status !== filter.status) return null;
+          return { link, similarity: h.similarity };
+        })
+        .filter((x): x is { link: LinkItem; similarity: number } => x !== null);
+    }
+    return filteredLinks.map((link) => ({ link }));
+  }, [aiSearchEnabled, aiHits, links, filter.status, filteredLinks]);
 
   if (loading) {
     return (
@@ -35,10 +124,10 @@ export function LibraryView() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-            <Image 
-              src="/library.svg" 
-              alt="Library" 
-              width={36} 
+            <Image
+              src="/library.svg"
+              alt="Library"
+              width={36}
               height={36}
               className="w-full h-full object-cover"
             />
@@ -46,26 +135,48 @@ export function LibraryView() {
           <div>
             <h2 className="text-sm font-semibold text-text-primary">Library</h2>
             <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-              {filteredLinks.length} link
-              {filteredLinks.length !== 1 ? "s" : ""}
+              {visible.length} link{visible.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Search + Filter */}
+      {/* Search + AI toggle + Filter */}
       <div className="flex items-center gap-2">
         <div
-          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg
-                        bg-surface-raised/50 border border-border-subtle
-                        focus-within:border-accent-violet/30 transition-colors"
+          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg
+                      bg-surface-raised/50 border transition-colors
+                      ${
+                        aiSearchEnabled
+                          ? "border-accent-violet/40 focus-within:border-accent-violet/60"
+                          : "border-border-subtle focus-within:border-accent-violet/30"
+                      }`}
         >
-          <Search size={14} className="text-text-ghost" />
+          {aiSearching ? (
+            <Loader2
+              size={14}
+              className="text-accent-violet animate-spin"
+            />
+          ) : aiSearchEnabled ? (
+            <Sparkles size={14} className="text-accent-violet" />
+          ) : (
+            <Search size={14} className="text-text-ghost" />
+          )}
           <input
             type="text"
             value={filter.search}
             onChange={(e) => setFilter({ search: e.target.value })}
-            placeholder="Search links..."
+            onKeyDown={(e) => {
+              if (aiSearchEnabled && e.key === "Enter") {
+                e.preventDefault();
+                void runAiSearch();
+              }
+            }}
+            placeholder={
+              aiSearchEnabled
+                ? "Ask in natural language, then press Enter..."
+                : "Search links..."
+            }
             className="flex-1 bg-transparent text-sm text-text-primary placeholder-text-ghost outline-none"
           />
           {filter.search && (
@@ -89,6 +200,17 @@ export function LibraryView() {
           <Filter size={16} />
         </button>
       </div>
+
+      {/* AI mode banner */}
+      {aiSearchEnabled && (
+        <div className="flex items-center justify-between text-[10px] font-mono uppercase tracking-wider">
+          <span className="flex items-center gap-1.5 text-accent-violet">
+            <Sparkles size={10} />
+            AI-powered results
+          </span>
+          {aiError && <span className="text-accent-rose">{aiError}</span>}
+        </div>
+      )}
 
       {/* Active filters */}
       {(filter.category || filter.tags.length > 0) && (
@@ -218,26 +340,52 @@ export function LibraryView() {
 
       {/* Links list */}
       <AnimatePresence mode="popLayout">
-        {filteredLinks.length === 0 ? (
+        {aiSearchEnabled && aiSearching && visible.length === 0 ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 rounded-xl shimmer" />
+            ))}
+          </div>
+        ) : visible.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex flex-col items-center justify-center py-16 text-center"
           >
             <div className="p-4 rounded-2xl bg-surface-raised/50 mb-4">
-              <FolderOpen size={28} className="text-text-ghost" />
+              {aiSearchEnabled ? (
+                <Sparkles size={28} className="text-text-ghost" />
+              ) : (
+                <FolderOpen size={28} className="text-text-ghost" />
+              )}
             </div>
             <p className="text-sm text-text-secondary">No links found</p>
             <p className="text-xs text-text-ghost mt-1">
-              {filter.search || filter.category || filter.tags.length > 0
-                ? "Try adjusting your filters"
-                : "Add links from your Inbox to build your library"}
+              {aiSearchEnabled
+                ? filter.search
+                  ? "Try rephrasing your query"
+                  : "Type a question to search semantically"
+                : filter.search || filter.category || filter.tags.length > 0
+                  ? "Try adjusting your filters"
+                  : "Add links from your Inbox to build your library"}
             </p>
           </motion.div>
         ) : (
           <div className="space-y-3">
-            {filteredLinks.map((link) => (
-              <LinkCard key={link.id} link={link} mode="library" />
+            {visible.map(({ link, similarity }) => (
+              <div key={link.id} className="relative">
+                {similarity !== undefined && (
+                  <span
+                    className="absolute -top-1.5 right-2 z-10 px-1.5 py-0.5 rounded-md
+                               text-[9px] font-mono uppercase tracking-wider
+                               bg-accent-violet/20 text-accent-violet
+                               ring-1 ring-accent-violet/30 backdrop-blur"
+                  >
+                    {Math.round(similarity * 100)}% match
+                  </span>
+                )}
+                <LinkCard link={link} mode="library" />
+              </div>
             ))}
           </div>
         )}

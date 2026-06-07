@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const response = await fetch('https://scraper-service-production-a9bd.up.railway.app/scrape', { 
+    const response = await fetch('https://scraper-service-bwk8.onrender.com/scrape', { 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
