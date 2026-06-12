@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const response = await fetch('https://scraper-service-bwk8.onrender.com/scrape', { 
+    const response = await fetch('http://65.2.83.212:3000/scrape', { 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
