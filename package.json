@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "export:firestore": "node scripts/export-firestore.mjs"
+    "export:firestore": "node scripts/export-firestore.mjs",
+    "backfill:thumbnails": "node scripts/backfill-thumbnails.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.1",

@@ -70,6 +70,7 @@ interface LinkRow {
   title: string | null;
   description: string | null;
   favicon: string | null;
+  thumbnail: string | null;
   note: string | null;
   status: LinkStatus;
   category: string | null;
@@ -87,6 +88,7 @@ function rowToLink(row: LinkRow): LinkItem {
     title: row.title ?? "",
     description: row.description ?? "",
     favicon: row.favicon ?? "",
+    thumbnail: row.thumbnail ?? "",
     note: row.note ?? "",
     status: row.status,
     category: row.category ?? "Website",
@@ -102,6 +104,7 @@ async function fetchUrlMetadata(url: string) {
     title: new URL(url).hostname.replace("www.", ""),
     description: "",
     favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`,
+    thumbnail: "",
   };
 
   if (url.includes("youtube.com") || url.includes("youtu.be")) {
@@ -115,6 +118,7 @@ async function fetchUrlMetadata(url: string) {
           title: data.title || fallback.title,
           description: data.author_name || "",
           favicon: fallback.favicon,
+          thumbnail: data.thumbnail_url || "",
         };
       }
     } catch {
@@ -136,6 +140,7 @@ async function fetchUrlMetadata(url: string) {
       title: data.title || fallback.title,
       description: data.description || "",
       favicon: data.favicon || fallback.favicon,
+      thumbnail: data.thumbnail || "",
     };
   } catch {
     return fallback;
@@ -363,7 +368,8 @@ export function LinksProvider({ children }: { children: ReactNode }) {
           if (
             metadata.title !== fallbackTitle ||
             metadata.description ||
-            metadata.favicon !== fallbackFavicon
+            metadata.favicon !== fallbackFavicon ||
+            metadata.thumbnail
           ) {
             const { data: updated } = await supabase
               .from(LINKS_TABLE)
@@ -371,6 +377,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
                 title: metadata.title || fallbackTitle,
                 description: metadata.description || "",
                 favicon: metadata.favicon || fallbackFavicon,
+                thumbnail: metadata.thumbnail || "",
               })
               .eq("id", newId)
               .select("*")
@@ -434,6 +441,8 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       if (updates.description !== undefined)
         row.description = updates.description;
       if (updates.favicon !== undefined) row.favicon = updates.favicon;
+      if (updates.thumbnail !== undefined)
+        row.thumbnail = updates.thumbnail;
       if (updates.note !== undefined) row.note = updates.note;
       if (updates.status !== undefined) row.status = updates.status;
       if (updates.category !== undefined) row.category = updates.category;

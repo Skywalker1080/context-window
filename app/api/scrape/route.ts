@@ -18,7 +18,10 @@ export async function GET(req: Request) {
   }
 
   try {
-    const response = await fetch('http://65.2.83.212:3000/scrape', { 
+    const scraperUrl =
+      process.env.SCRAPER_SERVICE_URL ||
+      'http://Contex-Scrap-bPuOad2Z3F7G-528788321.us-east-1.elb.amazonaws.com/scrape';
+    const response = await fetch(scraperUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,6 +40,7 @@ export async function GET(req: Request) {
       title: metadata.title,
       description: metadata.description,
       favicon: metadata.logo || metadata.image || metadata.favicon || fallbackFavicon(targetUrl),
+      thumbnail: metadata.thumbnail || metadata.image || "",
     });
   } catch (error: any) {
     console.error("Metascraper API Error:", error);
