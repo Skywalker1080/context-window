@@ -49,3 +49,5 @@ supabase/.branches
 supabase/.temp
 
 .claude/
+
+scraper-service/

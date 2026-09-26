@@ -1,79 +1,41 @@
-# AI Agent Navigation Guide
+# AGENTS.md
 
-## Tech Stack Context
-* **Framework:** Next.js 16 (App Router)
-* **Runtime:** React 19
-* **Styling:** Tailwind CSS v4
-* **Backend:** Supabase (Auth + Postgres + Realtime)
-* **Offline cache:** IndexedDB via `idb` (replaces Firestore's `persistentLocalCache`)
-* **Architecture:** Structured as an SPA (Single Page Application) within Next.js. Most components require `"use client"` because of Supabase realtime subscriptions and browser-only auth state.
+## Stack
+Next.js 16 (App Router) · React 19 · Tailwind v4 (`app/globals.css` `@theme`, no config files) · Supabase (Auth + Postgres + Realtime) · IndexedDB via `idb` for offline cache. SPA-in-Next.js: most components are `"use client"` (realtime + browser auth state). Entry `app/page.tsx` imports `AppShell` with `ssr: false`.
 
-## Project Structure & Key Paths
+## Key paths
+- `contexts/LinksContext.tsx` — core state: Supabase + Realtime + IndexedDB mirror. Owns ALL `links`-table mutations (`addLink`, `triageLink`, `updateLink`, `deleteLink`, `addLinkToCollection`, `removeLinkFromCollection`, `removeCollectionFromAllLinks`).
+- `contexts/CollectionsContext.tsx` — collections state. Delegates link-membership ops to `useLinks()`. `CollectionsProvider` MUST mount inside `LinksProvider`.
+- `lib/offline.ts` — `assertOnline(action)` + `OfflineError`. `lib/toast.ts` — `showToast()`. `lib/offline-cache.ts` — IndexedDB mirror.
+- `types/index.ts` — shared types. `supabase/migrations/` — schema source of truth.
+- `app/api/scrape|embed|semantic-search|backfill-embeddings/route.ts` — proxies to backend services (auth patterns below).
+- `infrastructure/` — CDK stack `ContextWindowScraperStack` (us-east-1): ECR + ECS Fargate (1× 0.25vCPU/0.5GB, always-on) + ALB. `scraper-service/` — Fastify service source (separate repo, gitignored here).
 
-### Core Configuration
-* `app/page.tsx` — **Entry Point.** Dynamically imports `AppShell` with `ssr: false` to keep the app fully client-rendered.
-* `app/layout.tsx` — **Root Layout.** Contains PWA metadata and font configuration.
-* `app/globals.css` — **Design System.** Contains all custom Tailwind v4 `@theme` variables (fonts, colors) and core `.glass` utility classes. Do not use Tailwind config files; use this CSS file instead.
-* `lib/supabase.ts` — **Supabase browser client** (PKCE flow, persistent sessions).
-* `lib/offline-cache.ts` — **IndexedDB wrapper** for offline reads of links and collections.
-* `lib/offline.ts` — **`OfflineError` + `assertOnline(action)`.** Every mutation calls this BEFORE any optimistic state change so failed-offline attempts leave the UI clean. Emits a themed toast (1.5s dedupe) and throws.
-* `lib/toast.ts` — **Tiny pub/sub** for toast events. `showToast({ kind, title, body })`. Kinds: `info | warn | success | error`.
-* `supabase/migrations/` — **Schema source of truth.** Manage with the Supabase CLI (`npx supabase migration new …`, `npx supabase db push`).
-* `types/index.ts` — **TypeScript Definitions.** Central location for all shared interfaces (LinkItem, Collection, etc.).
+## Strict rules
+1. **Data:** no Server Components for data. Everything via `useLinks()` / `useCollections()`.
+2. **RLS:** `auth.uid() = user_id` enforced in Postgres. No `eq("user_id")` on writes; keep it on reads; Realtime channels MUST filter `user_id=eq.<uid>`.
+3. **Mutations:** `assertOnline()` BEFORE any optimistic change → apply locally (`upsertLocal`/`removeLocal`) → write with `.select("*").single()` → re-apply server row. Swallow `OfflineError` where global toast already covers it.
+4. **`collection_ids` (`uuid[]`):** read-modify-write client-side; scrub via `remove_collection_id_from_links` RPC + `removeCollectionFromAllLinks()`.
+5. **Schema:** only via `npx supabase migration new` + `db push`. Never dashboard-edit prod. New tables need `supabase_realtime` publication + select RLS policy.
+6. **Cache mirror:** every realtime event writes through to IndexedDB; contexts seed from IndexedDB first, then overwrite with fresh `select()`.
+7. **Styling/icons/motion:** glass tokens from `globals.css`, `lucide-react`, `framer-motion` only.
+8. **Proxies:** `/api/scrape` → Fargate ALB (`SCRAPER_SERVICE_URL`, `X-API-KEY: $API_SECRET`); `/api/embed|semantic-search|backfill` → semantic-search microservice (Bearer user token in, `X-API-KEY` out). Embed calls are fire-and-forget.
+9. **Embeddings:** text = `title + description + note + tags` (never URL); content-hash idempotent; `link_embeddings` has SELECT-only RLS, writes via service role.
+10. **Secrets:** never commit. Scraper `API_SECRET` lives in SSM `/context-window-scraper/api-secret`, injected as ECS secret. Frontend env in Vercel + `.env.local`.
+11. **PWA:** bump `CACHE_NAME` in `public/sw.js` on major UI/caching changes; bump version string when adding `ChangelogView` entries.
+12. **Build:** root `tsconfig.json` excludes `scraper-service/` + `infrastructure/` — `next build` type-checks the root, keep those excludes.
+13. **Local backup:** `scripts/export-firestore.mjs` + `firebase-admin` are migration-only, not runtime. Don't remove without confirmation.
 
-### Contexts & State (The "Brain")
-* `contexts/AuthContext.tsx` — Handles Google/Email login state. Exposes `useAuth()` returning an `AppUser` shape with `{ uid, email, displayName, photoURL, provider }` (mapped from the Supabase user via `mapUser()`).
-* `contexts/LinksContext.tsx` — **Core Logic.** Supabase queries + Realtime channel + IndexedDB cache mirror. Links carry a `collectionIds: string[]` field (stored as `collection_ids uuid[]` in Postgres). Owns `addLink`, `triageLink`, `updateLink`, `deleteLink`, `addLinkToCollection`, `removeLinkFromCollection`, `removeCollectionFromAllLinks` (the last three live here, not in CollectionsContext, because they mutate the `links` table and need direct access to its state setter for optimistic updates).
-* `contexts/CollectionsContext.tsx` — **Collections Logic.** Same realtime/cache pattern as LinksContext. `deleteCollection` calls the `remove_collection_id_from_links` Postgres RPC to scrub array refs, AND calls `removeCollectionFromAllLinks(id)` from LinksContext so the link UI reflects the scrub instantly. Re-exposes `addLinkToCollection` / `removeLinkFromCollection` by delegating to `useLinks()` so existing consumers (`LinkCard`) keep working unchanged. NOTE: this means `CollectionsProvider` MUST be mounted inside `LinksProvider` (see `AppShell.tsx`).
+## Agent skills
 
-### API Routes
-* `app/api/scrape/route.ts` — **Scraping Proxy.** Forwards metadata extraction requests to a standalone Railway service.
-* `app/api/embed/route.ts` — **Embedding Proxy.** Validates the user's Supabase access token (Bearer header), then forwards `{ link_id, user_id }` to the semantic-search microservice with `X-API-KEY: $API_SECRET`. Called fire-and-forget from `LinksContext` after `addLink` and any `updateLink` that touches embed-relevant fields.
-* `app/api/semantic-search/route.ts` — **Semantic Search Proxy.** Same auth pattern. Forwards `{ query, user_id, match_count, match_threshold }` to the microservice and returns `{ results: [{ link_id, similarity }] }`.
-* `app/api/backfill-embeddings/route.ts` — **Backfill Proxy.** Triggers bulk embedding for the current user's un-embedded links.
+### Issue tracker
 
-> Required env vars for the proxies: `API_SECRET` (already set, shared with `/api/scrape`) and `SEMANTIC_SEARCH_SERVICE_URL` (Railway URL of the microservice — set this in Vercel and `.env.local`).
+Issues live in GitHub Issues for Skywalker1080/context-window (via `gh`). See `docs/agents/issue-tracker.md`.
 
-### Standalone Services (separate repos / deployments)
-* **Scraper service** — Railway, called by `/api/scrape`.
-* **Semantic search service** — Python/FastAPI at `C:\Projects\context-window-ai`. Owns the `link_embeddings` table via Supabase service role key. Endpoints: `POST /embed`, `POST /search`, `POST /backfill`, `GET /health`. All non-health routes require `X-API-KEY` matching `API_SECRET`.
+### Triage labels
 
-### UI Components (`/components`)
-* `AppShell.tsx` — Gatekeeper (Auth check). Mounts `<Toaster />` at the root so toasts and the offline banner persist across auth states.
-* `Dashboard.tsx` — Layout wrapper with sidebar logic.
-* `Sidebar.tsx` — Navigation menu. Uses `user.provider === "google"` to detect Google sign-in.
-* `LinkCard.tsx` — Main repeatable card for URLs.
-* `InboxQueue.tsx` / `LibraryView.tsx` — Primary data views.
-* `CollectionView.tsx` — Filtered view for specific collections.
-* `AuthPage.tsx` — Sign-in / sign-up. Maps Supabase error messages to user-friendly copy.
-* `Toaster.tsx` — Global glass-themed toast stack + persistent "Offline · read-only" amber pill at the top + transient "Back online" emerald flash on reconnect. Listens to `online`/`offline` window events and `subscribeToToasts()`.
-* `ChangelogView.tsx` — "What's New" page. Bump the version string when adding entries.
+Default five canonical labels, each equal to its role name. See `docs/agents/triage-labels.md`.
 
-### PWA Assets
-* `app/manifest.ts` — Web App Manifest.
-* `public/sw.js` — **Service Worker.** Network-first; bypasses Supabase and `/api/scrape`. Versioned via `CACHE_NAME` (currently `v7`). Bump this version when making major UI or caching logic changes.
+### Domain docs
 
-## Guidelines for Agents
-1. **Styling:** Rely on custom variables in `app/globals.css` (e.g., `text-accent-violet`, `bg-void`, `glass`).
-2. **Icons:** Use `lucide-react`.
-3. **Animations:** Use `framer-motion` (`motion.div`, `AnimatePresence`).
-4. **Data Fetching:** Do not use Server Components for data. All Supabase data comes from `useLinks()` and `useCollections()`.
-5. **Security Pattern (CRITICAL):** Postgres Row-Level Security enforces `auth.uid() = user_id` on every row. The client does NOT need to add `eq("user_id", uid)` to writes — RLS will reject. For reads, you should still add `.eq("user_id", uid)` to keep the query plan tight, and Realtime channels MUST include `filter: 'user_id=eq.<uid>'` for socket efficiency.
-6. **Mutations on `collection_ids`:** It is a `uuid[]` array. To mutate, read-modify-write the array client-side. To scrub a single id from many links (e.g., on collection delete), call the `remove_collection_id_from_links` RPC.
-7. **Schema changes:** Always go through `npx supabase migration new <name>` and `npx supabase db push`. Never modify tables in the dashboard for production schema.
-8. **Realtime + RLS:** Tables must be added to the `supabase_realtime` publication AND have RLS policies granting select. The initial migration handles both for `links` and `collections`.
-9. **Offline cache:** Every realtime event mirrors the new state into IndexedDB via `cacheLinks` / `cacheCollections`. On context mount, IndexedDB is read first to seed React state instantly; the fresh `select()` then overwrites once it lands.
-10. **Optimistic updates (CRITICAL).** Supabase mutations require a network round-trip plus a Realtime broadcast before the UI would otherwise update — that's two round-trips of latency, which feels broken compared to Firestore. Every mutation in LinksContext / CollectionsContext therefore: (a) calls `assertOnline(action)` first; (b) applies the change to local state via `upsertLocal` / `removeLocal`; (c) sends the write with `.select("*").single()`; (d) re-applies the returned server row (idempotent — the realtime event later does the same merge harmlessly). Without this pattern the UI feels broken. Keep the pattern when adding new mutations.
-11. **Offline guard pattern.** Every mutation MUST call `assertOnline("verb-phrase")` BEFORE any optimistic state change. `assertOnline` emits a themed toast and throws `OfflineError`. Call sites that surface their own error UI (e.g. `CaptureBar`) should swallow `OfflineError` since the global toast already informs the user.
-
-## Future Work
-* **~~pgvector / AI agents.~~** ✅ Implemented. See `supabase/migrations/20260510000000_add_pgvector_embeddings.sql` (creates `link_embeddings`, HNSW cosine index, and the `match_links` RPC) and the standalone semantic-search microservice. Next step: LLM-powered query rewriting (extracting date filters, reformulating queries) — currently V1 embeds the raw query.
-
-## Embeddings Pipeline
-* **Embedding text:** `title + description + note + tags` (joined by newlines). The URL is intentionally excluded — two links with identical metadata should rank near each other.
-* **Idempotency:** the microservice hashes the embed text (SHA-256) into `link_embeddings.content_hash` and skips regeneration when the hash is unchanged. Calling `/api/embed` repeatedly for an unchanged link is free.
-* **Triggers:** `addLink` fires `/api/embed` after metadata fetch resolves (in `.finally`). `updateLink` fires it whenever `title`, `description`, `note`, or `tags` changes. Both calls are fire-and-forget — failures are swallowed because embedding is non-critical.
-* **RLS exception:** `link_embeddings` has only a SELECT policy for `authenticated`. All writes flow through the microservice using the service role key, which bypasses RLS but enforces `user_id` filtering in every query.
-
-## Local Backup Tooling (Not Runtime)
-* `scripts/export-firestore.mjs` and the `firebase-admin` devDependency exist solely for one-off Firestore exports during the migration. Not part of the runtime path. Remove only when the user confirms the offline backup is no longer needed.
+Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
