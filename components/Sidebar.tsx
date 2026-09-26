@@ -65,14 +65,14 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
   const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const dismissed = localStorage.getItem("changelog_v1.1_dismissed");
+    const dismissed = localStorage.getItem("changelog_v1.3_dismissed");
     if (!dismissed) {
       setShowChangelog(true);
     }
   }, []);
 
   const dismissChangelog = () => {
-    localStorage.setItem("changelog_v1.1_dismissed", "true");
+    localStorage.setItem("changelog_v1.3_dismissed", "true");
     setShowChangelog(false);
   };
 
@@ -441,7 +441,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
                 <span className="text-xs font-bold text-text-primary tracking-tight">What's new</span>
               </div>
               <p className="text-[10px] text-text-secondary leading-tight pr-6">
-                Version v1.2.0 is here. Click to view the latest updates!
+                Version v1.3.0 is here. Click to view the latest updates!
               </p>
             </div>
           </motion.div>

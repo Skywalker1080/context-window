@@ -11,11 +11,16 @@ import { InsightsPanel } from "@/components/InsightsPanel";
 import { CollectionView } from "@/components/CollectionView";
 import { ChangelogView } from "./ChangelogView";
 import { SettingsView } from "@/components/SettingsView";
+import { LinkDetailPage } from "@/components/LinkDetailPage";
 import type { View } from "@/types";
 
 export function Dashboard() {
   const [activeView, setActiveView] = useState<View>("inbox");
   const [activeCollectionId, setActiveCollectionId] = useState<string | null>(null);
+  const [activeLinkId, setActiveLinkId] = useState<string | null>(null);
+  // Track the view+collection the user was on before opening a link, so Back
+  // returns them to where they came from.
+  const [returnView, setReturnView] = useState<{ view: View; collectionId: string | null }>({ view: "library", collectionId: null });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleViewChange = (view: View, collectionId?: string) => {
@@ -27,19 +32,37 @@ export function Dashboard() {
     }
   };
 
+  const openLinkDetail = (linkId: string) => {
+    setReturnView({ view: activeView, collectionId: activeCollectionId });
+    setActiveLinkId(linkId);
+    setActiveView("link-detail");
+  };
+
+  const closeLinkDetail = () => {
+    setActiveLinkId(null);
+    setActiveView(returnView.view);
+    setActiveCollectionId(returnView.collectionId);
+  };
+
   const renderView = () => {
     switch (activeView) {
       case "inbox":
         return <InboxQueue />;
       case "library":
-        return <LibraryView />;
+        return <LibraryView onOpenDetail={openLinkDetail} />;
       case "insights":
         return <InsightsPanel />;
       case "collection":
         return activeCollectionId ? (
-          <CollectionView collectionId={activeCollectionId} />
+          <CollectionView collectionId={activeCollectionId} onOpenDetail={openLinkDetail} />
         ) : (
-          <LibraryView />
+          <LibraryView onOpenDetail={openLinkDetail} />
+        );
+      case "link-detail":
+        return activeLinkId ? (
+          <LinkDetailPage linkId={activeLinkId} onBack={closeLinkDetail} />
+        ) : (
+          <LibraryView onOpenDetail={openLinkDetail} />
         );
       case "changelog":
         return <ChangelogView />;
@@ -115,19 +138,27 @@ export function Dashboard() {
 
       {/* Main content */}
       <main className="flex-1 lg:ml-56 relative z-10 min-w-0 w-full">
-        <div className={`${activeView === "inbox" ? "max-w-3xl" : "max-w-none"} mx-auto px-4 lg:px-8 pt-20 lg:pt-8 pb-16`}>
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mb-8"
-          >
-            {activeView === "inbox" && <CaptureBar />}
-          </motion.div>
+        <div className={`${activeView === "inbox" || activeView === "link-detail" ? "max-w-3xl" : "max-w-none"} mx-auto px-4 lg:px-8 pt-20 lg:pt-8 pb-16`}>
+          {activeView === "inbox" && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="mb-8"
+            >
+              <CaptureBar />
+            </motion.div>
+          )}
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={activeView === "collection" ? `collection-${activeCollectionId}` : activeView}
+              key={
+                activeView === "collection"
+                  ? `collection-${activeCollectionId}`
+                  : activeView === "link-detail"
+                    ? `link-${activeLinkId}`
+                    : activeView
+              }
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}

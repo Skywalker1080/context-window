@@ -13,7 +13,7 @@ export function ChangelogView() {
         <div>
           <h2 className="text-sm font-semibold text-text-primary">What's New</h2>
           <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-            Version 1.2.0
+            Version 1.3.0
           </p>
         </div>
       </div>
@@ -25,6 +25,30 @@ export function ChangelogView() {
       >
         <div className="space-y-8">
           {/* Item 1 */}
+          <div className="flex items-start gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-text-primary mb-1.5 tracking-tight">
+                AI summaries and smart tag suggestions
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Every link you save now gets an AI-generated 2-3 line summary and suggested tags. Suggested tags appear as dashed chips — tap + to accept, × to dismiss. Summaries show up automatically on the card and in the new detail view.
+              </p>
+            </div>
+          </div>
+
+          {/* Item 2 */}
+          <div className="flex items-start gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-text-primary mb-1.5 tracking-tight">
+                Card detail view
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Click any card in your Library or on a Board to open a full detail view — thumbnail, description, AI summary, and tags all in one place. In-app link preview (read pages without leaving Context Window) is coming soon.
+              </p>
+            </div>
+          </div>
+
+          {/* Item 3 */}
           <div className="flex items-start gap-4">
             <div>
               <h3 className="text-sm font-bold text-text-primary mb-1.5 tracking-tight">

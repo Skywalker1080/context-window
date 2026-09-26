@@ -6,12 +6,13 @@ import { Clock, ExternalLink, FileText, FolderOpen, Globe, Layers, Link, MoreHor
 import type { LinkItem } from "@/types";
 import { useLinks } from "@/contexts/LinksContext";
 import { useCollections } from "@/contexts/CollectionsContext";
+import { EnrichmentSection } from "./EnrichmentSection";
 
-interface SavedLinkCardProps { link: LinkItem; activeCollectionId?: string; stacked?: boolean }
+interface SavedLinkCardProps { link: LinkItem; activeCollectionId?: string; stacked?: boolean; onOpenDetail?: (link: LinkItem) => void }
 
 const coverStyles = ["from-[#d88a55] via-[#5b453d] to-[#262321]", "from-[#6b7798] via-[#3b4654] to-[#1e2425]", "from-[#6f8664] via-[#3e5142] to-[#1f2925]", "from-[#9c7657] via-[#5c4941] to-[#292421]"];
 
-export function SavedLinkCard({ link, activeCollectionId, stacked = false }: SavedLinkCardProps) {
+export function SavedLinkCard({ link, activeCollectionId, stacked = false, onOpenDetail }: SavedLinkCardProps) {
   const { deleteLink } = useLinks();
   const { collections, addLinkToCollection, removeLinkFromCollection } = useCollections();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,8 +22,10 @@ export function SavedLinkCard({ link, activeCollectionId, stacked = false }: Sav
     ? removeLinkFromCollection(link.id, collectionId)
     : addLinkToCollection(link.id, collectionId);
 
+  const openDetail = () => { if (onOpenDetail) onOpenDetail(link); };
+
   return <motion.article layout initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ duration: 0.28, ease: "easeOut" }} className={`group relative w-full overflow-visible rounded-2xl border border-white/10 bg-[#20201f] shadow-[0_16px_35px_rgba(0,0,0,0.22)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_20px_42px_rgba(0,0,0,0.34)] ${stacked ? "board-card" : ""}`}>
-    <div className={`relative min-h-28 overflow-hidden rounded-t-2xl bg-gradient-to-br ${cover}`}>
+    <div onClick={openDetail} className={`relative min-h-28 overflow-hidden rounded-t-2xl bg-gradient-to-br ${cover} ${onOpenDetail ? "cursor-pointer" : ""}`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,.28),transparent_24%),radial-gradient(circle_at_82%_12%,rgba(255,255,255,.13),transparent_18%)]" />
       {link.thumbnail && <img src={link.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" className="block h-auto max-h-80 w-full object-cover" onError={(event) => { event.currentTarget.style.display = "none"; }} />}
       <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/45 to-transparent" />
@@ -33,8 +36,21 @@ export function SavedLinkCard({ link, activeCollectionId, stacked = false }: Sav
       <span title={link.category || "Saved"} className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-black/30 text-white/85 backdrop-blur-sm"><CategoryGlyph category={link.category} /></span>
     </div>
     <div className="p-4">
-      <div className="flex items-start gap-2"><a href={link.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 text-[15px] font-semibold leading-5 text-text-primary transition-colors hover:text-accent-violet"><span className="line-clamp-2">{link.title || link.url}</span></a><a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title || domain}`} className="mt-0.5 text-text-ghost transition-colors hover:text-text-primary"><ExternalLink size={15} /></a></div>
-      {link.description && <p className="mt-2 text-xs leading-5 text-text-muted line-clamp-2">{link.description}</p>}
+      <div className="flex items-start gap-2"><a href={link.url} target="_blank" rel="noopener noreferrer" onClick={(e) => { if (onOpenDetail && !e.metaKey && !e.ctrlKey) { e.preventDefault(); onOpenDetail(link); } }} className="min-w-0 flex-1 text-left text-[15px] font-semibold leading-5 text-text-primary transition-colors hover:text-accent-violet cursor-pointer"><span className="line-clamp-2">{link.title || link.url}</span></a><a href={link.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${link.title || domain}`} className="mt-0.5 text-text-ghost transition-colors hover:text-text-primary"><ExternalLink size={15} /></a></div>
+      {(() => {
+        const displayText =
+          link.enrichmentStatus === "done" && link.summary ? link.summary : link.description;
+        const isAiSummary = link.enrichmentStatus === "done" && !!link.summary;
+        return displayText ? (
+          <p
+            onClick={openDetail}
+            className={`mt-2 text-xs leading-5 line-clamp-2 ${isAiSummary ? "text-text-secondary" : "text-text-muted"} ${onOpenDetail ? "cursor-pointer" : ""}`}
+          >
+            {displayText}
+          </p>
+        ) : null;
+      })()}
+      <EnrichmentSection link={link} compact />
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/8 pt-3 text-[10px] font-mono text-text-ghost"><span className="flex min-w-0 items-center gap-1.5"><span className="flex shrink-0 items-center gap-1"><Clock size={11} /> {getTimeAgo(link.createdAt)}</span>{link.tags.length > 0 && <span className="truncate text-text-muted">#{link.tags.join(" #")}</span>}</span><div className="relative"><button onClick={() => setMenuOpen((value) => !value)} aria-label="Link actions" className="rounded-md p-1 text-text-ghost transition-colors hover:bg-white/8 hover:text-text-primary"><MoreHorizontal size={16} /></button><AnimatePresence>{menuOpen && <motion.div initial={{ opacity: 0, scale: 0.96, y: -4 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: -4 }} className="absolute bottom-8 right-0 z-20 w-48 overflow-hidden rounded-xl border border-border-subtle bg-[#2a2927] py-1 shadow-xl">
         {activeCollectionId && <button onClick={() => void removeLinkFromCollection(link.id, activeCollectionId)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-text-secondary hover:bg-white/5 hover:text-text-primary"><X size={13} /> Remove from board</button>}
         {collections.length > 0 && <div className="border-t border-white/8 py-1"><p className="px-3 py-1 text-[9px] font-mono uppercase tracking-wider text-text-ghost">Boards</p>{collections.map((board) => <button key={board.id} onClick={() => void toggleBoard(board.id)} className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-text-secondary hover:bg-white/5 hover:text-text-primary"><FolderOpen size={13} /><span className="truncate">{link.collectionIds.includes(board.id) ? "✓ " : ""}{board.name}</span></button>)}</div>}

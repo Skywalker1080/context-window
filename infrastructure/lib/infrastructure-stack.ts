@@ -3,6 +3,7 @@ import * as ecs from 'aws-cdk-lib/aws-ecs';
 import * as ecs_patterns from 'aws-cdk-lib/aws-ecs-patterns';
 import * as ecr from 'aws-cdk-lib/aws-ecr';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
@@ -47,6 +48,8 @@ export class ScraperServiceStack extends cdk.Stack {
             PORT: '3000',
             NODE_ENV: 'production',
             ENABLE_REDIS: 'false',
+            BEDROCK_MODEL_ID: 'global.moonshotai.kimi-k3',
+            AWS_REGION: 'us-east-1',
           },
           secrets: {
             API_SECRET: ecs.Secret.fromSsmParameter(
@@ -54,6 +57,20 @@ export class ScraperServiceStack extends cdk.Stack {
                 this,
                 'ApiSecret',
                 { parameterName: '/context-window-scraper/api-secret' }
+              )
+            ),
+            SUPABASE_URL: ecs.Secret.fromSsmParameter(
+              ssm.StringParameter.fromSecureStringParameterAttributes(
+                this,
+                'SupabaseUrl',
+                { parameterName: '/context-window-scraper/supabase-url' }
+              )
+            ),
+            SUPABASE_SERVICE_ROLE_KEY: ecs.Secret.fromSsmParameter(
+              ssm.StringParameter.fromSecureStringParameterAttributes(
+                this,
+                'SupabaseServiceRoleKey',
+                { parameterName: '/context-window-scraper/supabase-service-role-key' }
               )
             ),
           },
@@ -69,6 +86,20 @@ export class ScraperServiceStack extends cdk.Stack {
         maxHealthyPercent: 200,
         assignPublicIp: true,
       }
+    );
+
+    // Allow the task to invoke Bedrock models. Covers foundation-model ARNs
+    // in every region (cross-region inference resolves to the target region's
+    // ARN) plus inference-profile ARNs on this account.
+    fargateService.taskDefinition.taskRole.addToPrincipalPolicy(
+      new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        resources: [
+          'arn:aws:bedrock:*::foundation-model/*',
+          `arn:aws:bedrock:*:${this.account}:inference-profile/*`,
+        ],
+      })
     );
 
     fargateService.targetGroup.configureHealthCheck({

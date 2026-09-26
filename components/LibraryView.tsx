@@ -22,7 +22,11 @@ import { SavedLinkCard } from "./SavedLinkCard";
 
 type AiHit = { linkId: string; similarity: number };
 
-export function LibraryView() {
+interface LibraryViewProps {
+  onOpenDetail?: (linkId: string) => void;
+}
+
+export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
   const { links, filteredLinks, filter, setFilter, loading, insights, addLink, inboxLinks, inboxFull } =
     useLinks();
   const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
@@ -404,7 +408,7 @@ export function LibraryView() {
                     {Math.round(similarity * 100)}% match
                   </span>
                 )}
-                <SavedLinkCard link={link} />
+                <SavedLinkCard link={link} onOpenDetail={onOpenDetail ? (l) => onOpenDetail(l.id) : undefined} />
                 {link.note && (
                   <p
                     title={link.note}

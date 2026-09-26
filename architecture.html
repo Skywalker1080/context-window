@@ -3,162 +3,201 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Context Window — Architecture</title>
+<title>Context Window — Architecture Diagram</title>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'base',
+    themeVariables: {
+      primaryColor: '#1a2030',
+      primaryTextColor: '#e6eaf2',
+      primaryBorderColor: '#3a4560',
+      lineColor: '#8b94a7',
+      secondaryColor: '#131722',
+      tertiaryColor: '#0e1420',
+      fontFamily: 'ui-monospace, Menlo, Consolas, monospace',
+      fontSize: '13px',
+      edgeLabelBackground: '#131722'
+    },
+    flowchart: { curve: 'basis', padding: 18, nodeSpacing: 40, rankSpacing: 60 }
+  });
+</script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #0b0b14; color: #e8e8f0; font-family: -apple-system, "Segoe UI", Roboto, sans-serif; padding: 32px 20px 60px; }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  h1 { font-size: 26px; margin-bottom: 4px; }
-  .sub { color: #9a9ab0; font-size: 14px; margin-bottom: 28px; }
-  svg { width: 100%; height: auto; display: block; background: #12121e; border: 1px solid #2a2a40; border-radius: 14px; }
-  .box { fill: #1a1a2b; stroke: #3d3d5c; stroke-width: 1.5; rx: 10; }
-  .zone { fill: none; stroke-dasharray: 6 5; stroke-width: 1.5; rx: 12; }
-  .title { font-size: 15px; font-weight: 700; fill: #fff; }
-  .item { font-size: 12.5px; fill: #c9c9de; }
-  .dim { font-size: 11.5px; fill: #8d8da8; }
-  .edge { stroke: #8b7cf6; stroke-width: 2; fill: none; }
-  .edge-dim { stroke: #55556e; stroke-width: 1.5; fill: none; stroke-dasharray: 5 4; }
-  .elabel { font-size: 11px; fill: #b9aefc; }
-  .elabel-dim { font-size: 11px; fill: #8d8da8; }
-  table { width: 100%; border-collapse: collapse; margin-top: 28px; font-size: 13.5px; background: #12121e; border: 1px solid #2a2a40; border-radius: 14px; overflow: hidden; }
-  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid #23233a; vertical-align: top; }
-  th { color: #b9aefc; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-  tr:last-child td { border-bottom: none; }
-  td:first-child { white-space: nowrap; font-family: ui-monospace, monospace; font-size: 12.5px; color: #9be7c4; }
-  code { font-family: ui-monospace, monospace; font-size: 12px; background: #1e1e32; padding: 2px 6px; border-radius: 5px; color: #c9c9de; }
-  .note { margin-top: 20px; font-size: 13px; color: #9a9ab0; line-height: 1.7; }
-  .note b { color: #e8e8f0; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    background: #0b0d12; color: #e6eaf2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .sub { color: #8b94a7; font-size: 13px; margin-bottom: 18px; }
+  .diagram {
+    background: #0e1420; border: 1px solid #232a3a; border-radius: 12px;
+    padding: 20px; overflow-x: auto;
+  }
+  .diagram + .diagram { margin-top: 18px; }
+  h2 {
+    font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #8b94a7; margin: 22px 0 8px;
+  }
+  h2:first-of-type { margin-top: 0; }
+  .mermaid { display: flex; justify-content: center; }
+  footer {
+    margin-top: 22px; padding-top: 12px; border-top: 1px solid #232a3a;
+    color: #8b94a7; font-size: 11.5px;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Context Window — High-Level Architecture</h1>
-  <p class="sub">How the pieces connect · where each API lives · what protects it</p>
 
-  <svg viewBox="0 0 1000 640" role="img" aria-label="Architecture diagram">
-    <defs>
-      <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M 0 1 L 9 5 L 0 9 z" fill="#8b7cf6"></path>
-      </marker>
-      <marker id="arrD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M 0 1 L 9 5 L 0 9 z" fill="#55556e"></path>
-      </marker>
-    </defs>
+  <h1>Context Window — Architecture</h1>
+  <div class="sub">Boxes = where things run · Arrows = who calls what · Last updated 2026-09-26</div>
 
-    <!-- Browser -->
-    <rect class="zone" x="250" y="8" width="500" height="120" stroke="#3ddc97"></rect>
-    <text class="dim" x="262" y="26">BROWSER (PWA · installed / mobile / desktop)</text>
-    <rect class="box" x="270" y="38" width="460" height="78"></rect>
-    <text class="title" x="290" y="62">Next.js App — client-rendered SPA</text>
-    <text class="item" x="290" y="84">Contexts (Links · Collections · Auth) → render UI</text>
-    <text class="dim" x="290" y="104">IndexedDB mirror → instant load + offline reads</text>
+  <h2>System overview</h2>
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart LR
+  subgraph BROWSER["🖥️ Browser (user's device)"]
+    UI["Next.js SPA<br/>React 19 · ssr:false"]
+    CTX["Contexts<br/>Auth · Links · Collections"]
+    IDB[("IndexedDB<br/>offline mirror · idb")]
+    SW["Service Worker<br/>public/sw.js"]
+    UI --> CTX
+    CTX <-->|"read-through cache"| IDB
+  end
 
-    <!-- Vercel -->
-    <rect class="zone" x="150" y="170" width="700" height="150" stroke="#8b7cf6"></rect>
-    <text class="dim" x="162" y="188">VERCEL — context-window.vercel.app</text>
-    <rect class="box" x="170" y="200" width="160" height="100"></rect>
-    <text class="item" x="186" y="224">/api/scrape</text>
-    <text class="dim" x="186" y="244">metadata proxy</text>
-    <text class="dim" x="186" y="262">X-API-KEY out</text>
-    <rect class="box" x="345" y="200" width="160" height="100"></rect>
-    <text class="item" x="361" y="224">/api/embed</text>
-    <text class="item" x="361" y="244">/api/search *</text>
-    <text class="dim" x="361" y="264">Bearer in · key out</text>
-    <text class="dim" x="361" y="282">fire-and-forget</text>
-    <rect class="box" x="520" y="200" width="160" height="100"></rect>
-    <text class="item" x="536" y="224">/api/backfill</text>
-    <text class="dim" x="536" y="244">bulk re-embed</text>
-    <rect class="box" x="695" y="200" width="135" height="100"></rect>
-    <text class="item" x="711" y="224">static UI</text>
-    <text class="dim" x="711" y="244">/, manifest,</text>
-    <text class="dim" x="711" y="262">service worker</text>
+  subgraph VERCEL["▲ Vercel"]
+    STATIC["Static frontend"]
+    API_S["/api/scrape"]
+    API_E["/api/embed"]
+    API_SS["/api/semantic-search"]
+    API_B["/api/backfill-embeddings"]
+  end
 
-    <!-- AWS -->
-    <rect class="zone" x="20" y="362" width="330" height="270" stroke="#ff9f43"></rect>
-    <text class="dim" x="32" y="380">AWS us-east-1 (CDK: ContextWindowScraperStack)</text>
-    <rect class="box" x="40" y="392" width="290" height="56"></rect>
-    <text class="title" x="56" y="414">ALB — public entry</text>
-    <text class="dim" x="56" y="434">HTTP :80 · health check /health</text>
-    <rect class="box" x="40" y="460" width="290" height="76"></rect>
-    <text class="title" x="56" y="482">ECS Fargate — scraper ×1</text>
-    <text class="item" x="56" y="502">Fastify + metascraper · 0.25vCPU/0.5GB</text>
-    <text class="dim" x="56" y="522">always-on · ENABLE_REDIS=false</text>
-    <rect class="box" x="40" y="548" width="140" height="64"></rect>
-    <text class="item" x="54" y="570">ECR image</text>
-    <text class="dim" x="54" y="590">:latest</text>
-    <rect class="box" x="190" y="548" width="140" height="64"></rect>
-    <text class="item" x="204" y="570">SSM param</text>
-    <text class="dim" x="204" y="590">API_SECRET → ECS</text>
+  subgraph SUPABASE["⚡ Supabase Cloud"]
+    AUTH["Auth (GoTrue)<br/>issues JWT"]
+    DB[("Postgres")]
+    T_LINKS["links<br/>RLS: auth.uid()=user_id"]
+    T_COLS["collections<br/>RLS: auth.uid()=user_id"]
+    T_EMB["link_embeddings<br/>vector(768) · HNSW<br/>SELECT-only RLS"]
+    RT["Realtime publication<br/>supabase_realtime"]
+    RPC1["RPC<br/>match_links()"]
+    RPC2["RPC<br/>remove_collection_id_from_links()"]
+    DB --- T_LINKS
+    DB --- T_COLS
+    DB --- T_EMB
+    DB --- RPC1
+    DB --- RPC2
+  end
 
-    <!-- Supabase -->
-    <rect class="zone" x="370" y="362" width="280" height="270" stroke="#3ddc97"></rect>
-    <text class="dim" x="382" y="380">SUPABASE (managed)</text>
-    <rect class="box" x="390" y="392" width="240" height="76"></rect>
-    <text class="title" x="406" y="414">Postgres + Auth</text>
-    <text class="item" x="406" y="434">links · collections</text>
-    <text class="item" x="406" y="452">link_embeddings (SELECT-only)</text>
-    <rect class="box" x="390" y="480" width="240" height="56"></rect>
-    <text class="title" x="406" y="502">Realtime</text>
-    <text class="dim" x="406" y="522">user_id-filtered channels</text>
-    <rect class="box" x="390" y="548" width="240" height="64"></rect>
-    <text class="dim" x="406" y="570">RLS: auth.uid() = user_id</text>
-    <text class="dim" x="406" y="590">on every row</text>
+  subgraph AWS["☁️ AWS us-east-1"]
+    ALB["ALB"]
+    FG["ECS Fargate<br/>Scraper · Fastify + metascraper<br/>0.25vCPU / 0.5GB · always-on"]
+    ECR["ECR<br/>docker images"]
+    SSM["SSM Parameter<br/>/context-window-scraper/api-secret"]
+    CW["CloudWatch Logs"]
+    SEM["Semantic-search microservice<br/>(external Python · service_role key)"]
+    ALB --> FG
+    ECR -.->|"image pull"| FG
+    SSM -.->|"API_SECRET env"| FG
+    FG --> CW
+  end
 
-    <!-- Railway -->
-    <rect class="zone" x="670" y="362" width="310" height="270" stroke="#e08cff"></rect>
-    <text class="dim" x="682" y="380">RAILWAY</text>
-    <rect class="box" x="690" y="392" width="270" height="96"></rect>
-    <text class="title" x="706" y="414">Semantic-search service</text>
-    <text class="item" x="706" y="434">Python/FastAPI · pgvector</text>
-    <text class="dim" x="706" y="454">/embed · /search · /backfill</text>
-    <text class="dim" x="706" y="472">service-role key · X-API-KEY in</text>
-    <rect class="box" x="690" y="500" width="270" height="112"></rect>
-    <text class="dim" x="706" y="522">writes link_embeddings</text>
-    <text class="dim" x="706" y="542">(bypasses RLS, filters by</text>
-    <text class="dim" x="706" y="562">user_id in every query)</text>
-    <text class="dim" x="706" y="590">embed text: title+desc+note+tags</text>
+  %% Client → Vercel
+  UI -->|"deploys / serves"| STATIC
+  CTX -->|"GET ?url=…"| API_S
+  CTX -->|"POST {linkId} · Bearer JWT<br/>fire-and-forget"| API_E
+  CTX -->|"POST {query} · Bearer JWT"| API_SS
+  CTX -->|"POST · Bearer JWT"| API_B
 
-    <!-- Edges -->
-    <!-- browser -> vercel -->
-    <line class="edge" x1="500" y1="128" x2="500" y2="164" marker-end="url(#arr)"></line>
-    <text class="elabel" x="510" y="150">HTTPS</text>
-    <!-- browser -> supabase (direct SDK) -->
-    <path class="edge-dim" d="M 360 120 C 340 200, 380 280, 400 360" marker-end="url(#arrD)"></path>
-    <text class="elabel-dim" x="300" y="240">direct SDK</text>
-    <!-- supabase realtime -> browser -->
-    <path class="edge-dim" d="M 430 360 C 440 280, 560 200, 620 128" marker-end="url(#arrD)"></path>
-    <text class="elabel-dim" x="560" y="250">realtime push</text>
-    <!-- scrape -> ALB -->
-    <path class="edge" d="M 250 250 C 180 300, 120 340, 100 392" marker-end="url(#arr)"></path>
-    <text class="elabel" x="105" y="330">scrape</text>
-    <!-- ALB -> fargate -->
-    <line class="edge" x1="185" y1="448" x2="185" y2="456" marker-end="url(#arr)"></line>
-    <!-- embed/search -> railway -->
-    <path class="edge" d="M 505 300 C 600 330, 700 350, 760 390" marker-end="url(#arr)"></path>
-    <text class="elabel" x="610" y="340">embed/search</text>
-    <!-- railway -> supabase -->
-    <line class="edge" x1="690" y1="470" x2="654" y2="470" marker-end="url(#arr)"></line>
-    <text class="elabel" x="600" y="462">writes</text>
-    <!-- vercel app data -> supabase (via contexts, server note) -->
-    <path class="edge-dim" d="M 640 320 C 640 340, 560 350, 540 360" marker-end="url(#arrD)"></path>
-    <text class="elabel-dim" x="560" y="348">queries *</text>
-  </svg>
-  <p class="sub" style="margin-top:8px">* <code>/api/semantic-search</code> shown as “search”. Solid violet = HTTP calls · dashed grey = Supabase client SDK / realtime socket.</p>
+  %% Client → Supabase (direct)
+  CTX <-->|"Auth · JWT"| AUTH
+  CTX -->|"select / insert / update / delete<br/>RLS-scoped"| DB
+  RT -.->|"row changes<br/>user_id=eq.&lt;uid&gt;"| CTX
+  CTX -->|"subscribe"| RT
+  CTX -->|"call"| RPC2
 
-  <table>
-    <tr><th>Hop</th><th>Deployed on</th><th>Auth</th></tr>
-    <tr><td>browser → vercel app</td><td>Vercel · <code>context-window.vercel.app</code></td><td>Supabase session (Google / email)</td></tr>
-    <tr><td>browser → supabase</td><td>Supabase managed · direct from client SDK</td><td>RLS <code>auth.uid() = user_id</code> · realtime filtered by <code>user_id</code></td></tr>
-    <tr><td>/api/scrape → scraper</td><td>AWS ECS Fargate (us-east-1) via ALB</td><td><code>X-API-KEY: $API_SECRET</code> (secret in SSM, injected into task)</td></tr>
-    <tr><td>/api/embed|search|backfill → ai service</td><td>Railway · Python/FastAPI</td><td>user Bearer token in · <code>X-API-KEY</code> out</td></tr>
-    <tr><td>ai service → postgres</td><td colspan="2">Supabase service-role key (bypasses RLS, enforces <code>user_id</code> per query) → <code>link_embeddings</code></td></tr>
-  </table>
+  %% Vercel proxies → AWS
+  API_S -->|"POST /scrape<br/>X-API-KEY"| ALB
+  API_E -->|"POST /embed<br/>X-API-KEY + user_id"| SEM
+  API_SS -->|"POST /search<br/>X-API-KEY + user_id"| SEM
+  API_B -->|"POST /backfill<br/>X-API-KEY + user_id"| SEM
 
-  <p class="note">
-    <b>Read the diagram top-down:</b> the user lives in the browser (PWA + IndexedDB offline mirror). Vercel serves the UI and four thin proxy routes — no business logic lives there.
-    Data reads/writes go straight from the browser to Supabase; scraping and embeddings fan out to AWS and Railway and rejoin via Postgres + realtime.
-    <b>Known gap:</b> the ALB is HTTP-only, so the scraper API key travels in plaintext — add an ACM cert + HTTPS listener before treating this as hardened.
-  </p>
+  %% Semantic service → Supabase
+  SEM -->|"read links · write link_embeddings<br/>(service_role, bypasses RLS)"| DB
+  SEM -->|"call"| RPC1
+
+  %% Realtime source
+  DB -.->|"WAL"| RT
+
+  %% IndexedDB mirror from realtime
+  CTX -.->|"every realtime event<br/>writes through"| IDB
+    </pre>
+  </div>
+
+  <h2>Flow 1 — Add a link</h2>
+  <div class="diagram">
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant C as LinksContext (browser)
+  participant V as /api/scrape (Vercel)
+  participant F as Fargate Scraper (AWS)
+  participant S as Supabase Postgres
+  participant R as Supabase Realtime
+  participant I as IndexedDB
+  participant E as Semantic-search svc
+
+  U->>C: paste URL · addLink()
+  C->>C: assertOnline() · optimistic insert
+  C->>I: upsertLocal()
+  C->>V: GET /api/scrape?url=…
+  V->>F: POST /scrape · X-API-KEY
+  F-->>V: {title, description, favicon, thumbnail}
+  V-->>C: metadata
+  C->>S: insert into links (RLS checks auth.uid())
+  S-->>C: .select("*").single() → server row
+  S->>R: WAL → publication
+  R-->>C: broadcast (all tabs)
+  C->>I: write-through mirror
+  C-)E: POST /api/embed {linkId} (fire-and-forget)
+  E->>S: write link_embeddings (service_role)
+    </pre>
+  </div>
+
+  <h2>Flow 2 — Semantic search</h2>
+  <div class="diagram">
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as User
+  participant C as Browser
+  participant V as /api/semantic-search (Vercel)
+  participant E as Semantic-search svc
+  participant S as Supabase Postgres
+
+  U->>C: type query
+  C->>V: POST {query} · Bearer JWT
+  V->>V: verify JWT → user_id
+  V->>E: POST /search · X-API-KEY · {query, user_id}
+  E->>E: embed query text
+  E->>S: RPC match_links(embedding, user_id, threshold, count)
+  S-->>E: ranked link_ids (HNSW cosine)
+  E-->>V: results
+  V-->>C: results
+  C->>S: fetch full link rows (RLS-scoped)
+  S-->>C: link objects
+    </pre>
+  </div>
+
+  <footer>
+    Schema source of truth: <code>supabase/migrations/</code> · Secrets: Vercel env · SSM <code>/context-window-scraper/api-secret</code> · service_role key lives only on the semantic-search service
+  </footer>
+
 </div>
 </body>
 </html>

@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { cacheLinks, loadCachedLinks } from "@/lib/offline-cache";
 import { assertOnline } from "@/lib/offline";
 import { useAuth } from "./AuthContext";
-import type { LinkItem, LinkStatus, FilterState, InsightData } from "@/types";
+import type { LinkItem, LinkStatus, FilterState, InsightData, EnrichmentStatus } from "@/types";
 
 interface LinksContextValue {
   links: LinkItem[];
@@ -76,6 +76,10 @@ interface LinkRow {
   category: string | null;
   tags: string[] | null;
   collection_ids: string[] | null;
+  summary: string | null;
+  suggested_tags: string[] | null;
+  enrichment_status: EnrichmentStatus | null;
+  enriched_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -94,6 +98,10 @@ function rowToLink(row: LinkRow): LinkItem {
     category: row.category ?? "Website",
     tags: row.tags ?? [],
     collectionIds: row.collection_ids ?? [],
+    summary: row.summary ?? "",
+    suggestedTags: row.suggested_tags ?? [],
+    enrichmentStatus: row.enrichment_status ?? "pending",
+    enrichedAt: row.enriched_at ? new Date(row.enriched_at).getTime() : null,
     createdAt: new Date(row.created_at).getTime(),
     updatedAt: new Date(row.updated_at).getTime(),
   };
@@ -150,6 +158,26 @@ async function fetchUrlMetadata(url: string) {
 async function triggerEmbed(linkId: string) {
   // AI search feature is currently disabled
   return;
+}
+
+async function triggerEnrich(linkId: string, url: string, existingTags: string[]) {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) return;
+    await fetch("/api/enrich", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ linkId, url, existingTags }),
+    });
+  } catch (err) {
+    // Fire-and-forget — enrichment failures are non-fatal. The scraper marks
+    // enrichment_status='failed' server-side so the UI can react.
+    console.warn("Enrichment request failed:", err);
+  }
 }
 
 function categorizeUrl(url: string): string {
@@ -252,7 +280,15 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       const cached = await loadCachedLinks(uid);
       if (cancelled) return;
       if (cached.length) {
-        const sorted = [...cached].sort((a, b) => b.createdAt - a.createdAt);
+        // Normalize older cached records that predate LLM enrichment columns.
+        const normalized = cached.map((l) => ({
+          ...l,
+          summary: l.summary ?? "",
+          suggestedTags: l.suggestedTags ?? [],
+          enrichmentStatus: l.enrichmentStatus ?? "pending",
+          enrichedAt: l.enrichedAt ?? null,
+        }));
+        const sorted = [...normalized].sort((a, b) => b.createdAt - a.createdAt);
         setLinks(sorted);
         setLoading(false);
       }
@@ -388,6 +424,11 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         .catch((err) => console.error("Failed to fetch metadata:", err))
         .finally(() => {
           void triggerEmbed(newId);
+          // Kick off LLM enrichment — async, result lands via Realtime.
+          const existingTags = Array.from(
+            new Set(linksRef.current.flatMap((l) => l.tags))
+          );
+          void triggerEnrich(newId, url, existingTags);
         });
     },
     [user, upsertLocal]

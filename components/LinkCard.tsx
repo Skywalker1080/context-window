@@ -18,6 +18,7 @@ import {
 import type { LinkItem } from "@/types";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
 import { useCollections } from "@/contexts/CollectionsContext";
+import { EnrichmentSection } from "./EnrichmentSection";
 
 interface LinkCardProps {
   link: LinkItem;
@@ -133,11 +134,17 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
           </div>
         </div>
 
-        {link.description && (
-          <p className="mt-2 text-xs text-text-secondary line-clamp-2 pl-8">
-            {link.description}
-          </p>
-        )}
+        {(() => {
+          const displayText =
+            link.enrichmentStatus === "done" && link.summary
+              ? link.summary
+              : link.description;
+          return displayText ? (
+            <p className="mt-2 text-xs text-text-secondary line-clamp-2 pl-8">
+              {displayText}
+            </p>
+          ) : null;
+        })()}
 
         {link.note && !expanded && (
           <div className="mt-2 pl-8 flex items-start gap-1.5">
@@ -170,6 +177,8 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
             ))}
           </div>
         )}
+
+        <EnrichmentSection link={link} />
 
         {/* Expanded — category & tag editing */}
         {expanded && (

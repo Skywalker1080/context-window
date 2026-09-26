@@ -2,7 +2,9 @@
 
 export type LinkStatus = "inbox" | "library" | "deleted";
 
-export type View = "inbox" | "library" | "insights" | "collection" | "changelog" | "settings";
+export type View = "inbox" | "library" | "insights" | "collection" | "changelog" | "settings" | "link-detail";
+
+export type EnrichmentStatus = "pending" | "enriching" | "done" | "failed";
 
 export interface LinkItem {
   id: string;
@@ -16,6 +18,10 @@ export interface LinkItem {
   category: string;
   tags: string[];
   collectionIds: string[];
+  summary: string;
+  suggestedTags: string[];
+  enrichmentStatus: EnrichmentStatus;
+  enrichedAt: number | null;
   createdAt: number;
   updatedAt: number;
   userId: string;

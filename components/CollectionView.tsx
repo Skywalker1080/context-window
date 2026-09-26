@@ -19,9 +19,10 @@ import { SavedLinkCard } from "./SavedLinkCard";
 
 interface CollectionViewProps {
   collectionId: string;
+  onOpenDetail?: (linkId: string) => void;
 }
 
-export function CollectionView({ collectionId }: CollectionViewProps) {
+export function CollectionView({ collectionId, onOpenDetail }: CollectionViewProps) {
   const { links, loading, addLink, inboxLinks, inboxFull } = useLinks();
   const { collections, renameCollection } = useCollections();
   const [search, setSearch] = useState("");
@@ -233,7 +234,7 @@ export function CollectionView({ collectionId }: CollectionViewProps) {
           <div className="link-card-grid pb-12">
             {filteredLinks.map((link) => (
               <div key={link.id}>
-                <SavedLinkCard link={link} activeCollectionId={collectionId} />
+                <SavedLinkCard link={link} activeCollectionId={collectionId} onOpenDetail={onOpenDetail ? (l) => onOpenDetail(l.id) : undefined} />
                 {link.note && (
                   <p
                     title={link.note}
