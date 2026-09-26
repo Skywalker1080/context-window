@@ -33,6 +33,16 @@ export function EnrichmentSection({ link, compact = false }: EnrichmentSectionPr
     );
   }
 
+  if (link.enrichmentStatus === "failed") {
+    return (
+      <div className={compact ? "mt-2" : "mt-3 pl-8"}>
+        <p className="text-[10px] italic text-text-ghost">
+          AI summary unavailable for this link
+        </p>
+      </div>
+    );
+  }
+
   if (link.enrichmentStatus !== "done") return null;
 
   const visibleSuggestions = link.suggestedTags.filter(

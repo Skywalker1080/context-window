@@ -212,6 +212,20 @@ export function LinkDetailPage({ linkId, onBack }: LinkDetailPageProps) {
         </section>
       )}
 
+      {/* Failure state — be honest, not silent */}
+      {link.enrichmentStatus === "failed" && (
+        <section className="mb-8 rounded-xl border border-dashed border-border-subtle bg-surface/30 p-5">
+          <div className="mb-1 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-ghost">
+            <Sparkles size={11} />
+            AI Summary
+          </div>
+          <p className="text-sm italic text-text-muted">
+            We couldn&apos;t generate a summary for this page — the site may be
+            blocking our scraper, or the content is mostly JavaScript-rendered.
+          </p>
+        </section>
+      )}
+
       {/* Description — only if distinct from summary */}
       {link.description && link.description !== link.summary && (
         <section className="mb-8">
