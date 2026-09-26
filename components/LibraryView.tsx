@@ -5,25 +5,26 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
-  Filter,
   X,
   Tag,
   FolderOpen,
   Sparkles,
   Loader2,
+  ArrowUp,
 } from "lucide-react";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
 import { supabase } from "@/lib/supabase";
+import { showToast } from "@/lib/toast";
+import { OfflineError } from "@/lib/offline";
+import { parseQuickCapture } from "@/lib/quick-capture";
 import type { LinkItem } from "@/types";
-import { LinkCard } from "./LinkCard";
+import { SavedLinkCard } from "./SavedLinkCard";
 
 type AiHit = { linkId: string; similarity: number };
 
 export function LibraryView() {
-  const { links, filteredLinks, filter, setFilter, loading, insights } =
+  const { links, filteredLinks, filter, setFilter, loading, insights, addLink, inboxLinks, inboxFull } =
     useLinks();
-  const [showFilters, setShowFilters] = useState(false);
-
   const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
   const [aiHits, setAiHits] = useState<AiHit[] | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
@@ -93,6 +94,37 @@ export function LibraryView() {
     }
   };
 
+  // If the search text starts with a pasted link ("URL [optional note]"),
+  // capture it straight to the queue instead of searching. Returns true when handled.
+  const capturePastedLink = async (): Promise<boolean> => {
+    const parsed = parseQuickCapture(filter.search);
+    if (!parsed) return false;
+    try {
+      await addLink(parsed.url, parsed.note, []);
+      showToast({ kind: "success", title: "Link captured to queue" });
+      setFilter({ search: "" });
+    } catch (err) {
+      if (err instanceof OfflineError) {
+        // Global toast already surfaced the offline message.
+      } else {
+        showToast({
+          kind: "error",
+          title: err instanceof Error ? err.message : "Failed to capture link",
+        });
+      }
+    }
+    return true;
+  };
+
+  // Shared submit for Enter key and the send button: pasted links go to the
+  // queue, otherwise (in AI mode) run a semantic search.
+  const submitSearch = () => {
+    void (async () => {
+      if (await capturePastedLink()) return;
+      if (aiSearchEnabled) void runAiSearch();
+    })();
+  };
+
   // Compose the visible list. AI mode: filter `links` by hits, sort by similarity.
   // Otherwise use the existing client-side filteredLinks.
   const visible: { link: LinkItem; similarity?: number }[] = useMemo(() => {
@@ -121,7 +153,7 @@ export function LibraryView() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
             <Image
@@ -139,12 +171,10 @@ export function LibraryView() {
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Search + AI toggle + Filter */}
-      <div className="flex items-center gap-2">
+        {/* Search + capture */}
         <div
-          className={`flex-1 flex items-center gap-2 px-3 py-2 rounded-lg
+          className={`flex-1 min-w-[220px] flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full
                       bg-surface-raised/50 border transition-colors
                       ${
                         aiSearchEnabled
@@ -155,50 +185,52 @@ export function LibraryView() {
           {aiSearching ? (
             <Loader2
               size={14}
-              className="text-accent-violet animate-spin"
+              className="text-accent-violet animate-spin flex-shrink-0"
             />
           ) : aiSearchEnabled ? (
-            <Sparkles size={14} className="text-accent-violet" />
+            <Sparkles size={14} className="text-accent-violet flex-shrink-0" />
           ) : (
-            <Search size={14} className="text-text-ghost" />
+            <Search size={14} className="text-text-ghost flex-shrink-0" />
           )}
           <input
             type="text"
             value={filter.search}
             onChange={(e) => setFilter({ search: e.target.value })}
             onKeyDown={(e) => {
-              if (aiSearchEnabled && e.key === "Enter") {
-                e.preventDefault();
-                void runAiSearch();
-              }
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              submitSearch();
             }}
             placeholder={
               aiSearchEnabled
                 ? "Ask in natural language, then press Enter..."
-                : "Search links..."
+                : "Search or Capture links"
             }
-            className="flex-1 bg-transparent text-sm text-text-primary placeholder-text-ghost outline-none"
+            className="flex-1 min-w-0 bg-transparent text-sm text-text-primary placeholder-text-ghost outline-none"
           />
           {filter.search && (
             <button
               onClick={() => setFilter({ search: "" })}
-              className="text-text-ghost hover:text-text-secondary transition-colors"
+              className="text-text-ghost hover:text-text-secondary transition-colors flex-shrink-0"
             >
               <X size={14} />
             </button>
           )}
+          <div
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-semibold flex-shrink-0
+              ${inboxFull ? "bg-accent-amber-soft text-accent-amber" : "bg-accent-violet-soft text-accent-violet"}`}
+          >
+            {inboxLinks.length}/9
+          </div>
+          <button
+            onClick={submitSearch}
+            title="Search or capture link"
+            className="p-1.5 rounded-full bg-accent-violet/20 text-accent-violet
+                       hover:bg-accent-violet/30 transition-all duration-200 flex-shrink-0"
+          >
+            <ArrowUp size={14} />
+          </button>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`p-2 rounded-lg transition-all duration-200
-            ${
-              showFilters || filter.category || filter.tags.length > 0
-                ? "bg-accent-violet/20 text-accent-violet"
-                : "bg-surface-raised/50 text-text-muted hover:text-text-secondary"
-            }`}
-        >
-          <Filter size={16} />
-        </button>
       </div>
 
       {/* AI mode banner */}
@@ -253,95 +285,83 @@ export function LibraryView() {
         </div>
       )}
 
-      {/* Filter panel */}
-      <AnimatePresence>
-        {showFilters && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="glass rounded-xl p-4 space-y-4">
-              <div>
-                <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-2 flex items-center gap-1">
-                  <FolderOpen size={10} />
-                  Categories
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  <button
-                    onClick={() => setFilter({ category: null })}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
-                      ${
-                        !filter.category
-                          ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
-                          : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
-                      }`}
-                  >
-                    All
-                  </button>
-                  {DEFAULT_CATEGORIES.map((cat) => (
-                    <button
-                      key={cat.name}
-                      onClick={() =>
-                        setFilter({
-                          category:
-                            filter.category === cat.name ? null : cat.name,
-                        })
-                      }
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
-                        ${
-                          filter.category === cat.name
-                            ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
-                            : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
-                        }`}
-                    >
-                      {cat.icon} {cat.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {/* Always-visible filters */}
+      <section className="space-y-4 px-1">
+        <div>
+          <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-2 flex items-center gap-1">
+            <FolderOpen size={10} />
+            Categories
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => setFilter({ category: null })}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
+                ${
+                  !filter.category
+                    ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
+                    : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
+                }`}
+            >
+              All
+            </button>
+            {DEFAULT_CATEGORIES.map((cat) => (
+              <button
+                key={cat.name}
+                onClick={() =>
+                  setFilter({
+                    category:
+                      filter.category === cat.name ? null : cat.name,
+                  })
+                }
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
+                  ${
+                    filter.category === cat.name
+                      ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
+                      : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
+                  }`}
+              >
+                {cat.icon} {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
 
-              {allTags.length > 0 && (
-                <div>
-                  <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-2 flex items-center gap-1">
-                    <Tag size={10} />
-                    Tags
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {allTags.map((tag) => (
-                      <button
-                        key={tag}
-                        onClick={() =>
-                          setFilter({
-                            tags: filter.tags.includes(tag)
-                              ? filter.tags.filter((t) => t !== tag)
-                              : [...filter.tags, tag],
-                          })
-                        }
-                        className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
-                          ${
-                            filter.tags.includes(tag)
-                              ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
-                              : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
-                          }`}
-                      >
-                        #{tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+        {allTags.length > 0 && (
+          <div>
+            <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-2 flex items-center gap-1">
+              <Tag size={10} />
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {allTags.map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() =>
+                    setFilter({
+                      tags: filter.tags.includes(tag)
+                        ? filter.tags.filter((t) => t !== tag)
+                        : [...filter.tags, tag],
+                    })
+                  }
+                  className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all
+                    ${
+                      filter.tags.includes(tag)
+                        ? "bg-accent-violet/20 text-accent-violet border border-accent-violet/30"
+                        : "bg-surface-overlay text-text-muted hover:text-text-secondary border border-transparent"
+                    }`}
+                >
+                  #{tag}
+                </button>
+              ))}
             </div>
-          </motion.div>
+          </div>
         )}
-      </AnimatePresence>
+      </section>
 
-      {/* Links list */}
+      {/* Card library */}
       <AnimatePresence mode="popLayout">
         {aiSearchEnabled && aiSearching && visible.length === 0 ? (
-          <div className="space-y-3">
+          <div className="link-card-grid">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-24 rounded-xl shimmer" />
             ))}
@@ -371,7 +391,7 @@ export function LibraryView() {
             </p>
           </motion.div>
         ) : (
-          <div className="space-y-3">
+          <div className="link-card-grid">
             {visible.map(({ link, similarity }) => (
               <div key={link.id} className="relative">
                 {similarity !== undefined && (
@@ -384,7 +404,15 @@ export function LibraryView() {
                     {Math.round(similarity * 100)}% match
                   </span>
                 )}
-                <LinkCard link={link} mode="library" />
+                <SavedLinkCard link={link} />
+                {link.note && (
+                  <p
+                    title={link.note}
+                    className="mt-2 truncate px-1 text-[11px] leading-4 text-accent-violet/85"
+                  >
+                    {link.note}
+                  </p>
+                )}
               </div>
             ))}
           </div>

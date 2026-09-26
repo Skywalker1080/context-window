@@ -115,14 +115,14 @@ export function Dashboard() {
 
       {/* Main content */}
       <main className="flex-1 lg:ml-56 relative z-10 min-w-0 w-full">
-        <div className="max-w-3xl mx-auto px-4 lg:px-8 pt-20 lg:pt-8 pb-16">
+        <div className={`${activeView === "inbox" ? "max-w-3xl" : "max-w-none"} mx-auto px-4 lg:px-8 pt-20 lg:pt-8 pb-16`}>
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="mb-8"
           >
-            {activeView !== "settings" && <CaptureBar />}
+            {activeView === "inbox" && <CaptureBar />}
           </motion.div>
 
           <AnimatePresence mode="wait">

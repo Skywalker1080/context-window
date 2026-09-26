@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -9,17 +8,21 @@ import {
   FolderOpen,
   Pencil,
   Check,
+  ArrowUp,
 } from "lucide-react";
 import { useLinks } from "@/contexts/LinksContext";
 import { useCollections } from "@/contexts/CollectionsContext";
-import { LinkCard } from "./LinkCard";
+import { showToast } from "@/lib/toast";
+import { OfflineError } from "@/lib/offline";
+import { parseQuickCapture } from "@/lib/quick-capture";
+import { SavedLinkCard } from "./SavedLinkCard";
 
 interface CollectionViewProps {
   collectionId: string;
 }
 
 export function CollectionView({ collectionId }: CollectionViewProps) {
-  const { links, loading } = useLinks();
+  const { links, loading, addLink, inboxLinks, inboxFull } = useLinks();
   const { collections, renameCollection } = useCollections();
   const [search, setSearch] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
@@ -60,6 +63,32 @@ export function CollectionView({ collectionId }: CollectionViewProps) {
     setIsRenaming(false);
   };
 
+  // A pasted link ("URL [optional note]") + Enter captures straight to the queue.
+  const capturePastedLink = async (): Promise<boolean> => {
+    const parsed = parseQuickCapture(search);
+    if (!parsed) return false;
+    try {
+      await addLink(parsed.url, parsed.note, []);
+      showToast({ kind: "success", title: "Link captured to queue" });
+      setSearch("");
+    } catch (err) {
+      if (err instanceof OfflineError) {
+        // Global toast already surfaced the offline message.
+      } else {
+        showToast({
+          kind: "error",
+          title: err instanceof Error ? err.message : "Failed to capture link",
+        });
+      }
+    }
+    return true;
+  };
+
+  // Shared submit for Enter key and the send button: pasted links go to the queue.
+  const submitSearch = () => {
+    void capturePastedLink();
+  };
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -76,15 +105,15 @@ export function CollectionView({ collectionId }: CollectionViewProps) {
         <div className="p-4 rounded-2xl bg-surface-raised/50 mb-4">
           <FolderOpen size={28} className="text-text-ghost" />
         </div>
-        <p className="text-sm text-text-secondary">Collection not found</p>
+        <p className="text-sm text-text-secondary">Board not found</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      {/* Header + search */}
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-accent-violet-soft flex items-center justify-center">
             <FolderOpen size={18} className="text-accent-violet" />
@@ -128,40 +157,57 @@ export function CollectionView({ collectionId }: CollectionViewProps) {
               </div>
             )}
             <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-              {collectionLinks.length} link
+              {collectionLinks.length} card
               {collectionLinks.length !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Search */}
-      <div className="flex items-center gap-2">
+        {/* Search + capture */}
         <div
-          className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg
-                        bg-surface-raised/50 border border-border-subtle
-                        focus-within:border-accent-violet/30 transition-colors"
+          className="flex-1 min-w-[220px] flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-full
+                     bg-surface-raised/50 border border-border-subtle
+                     focus-within:border-accent-violet/30 transition-colors"
         >
-          <Search size={14} className="text-text-ghost" />
+          <Search size={14} className="text-text-ghost flex-shrink-0" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search in collection..."
-            className="flex-1 bg-transparent text-sm text-text-primary placeholder-text-ghost outline-none"
+            onKeyDown={(e) => {
+              if (e.key !== "Enter") return;
+              e.preventDefault();
+              submitSearch();
+            }}
+            placeholder="Search or Capture links"
+            className="flex-1 min-w-0 bg-transparent text-sm text-text-primary placeholder-text-ghost outline-none"
           />
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="text-text-ghost hover:text-text-secondary transition-colors"
+              className="text-text-ghost hover:text-text-secondary transition-colors flex-shrink-0"
             >
               <X size={14} />
             </button>
           )}
+          <div
+            className={`px-2 py-0.5 rounded-full text-xs font-mono font-semibold flex-shrink-0
+              ${inboxFull ? "bg-accent-amber-soft text-accent-amber" : "bg-accent-violet-soft text-accent-violet"}`}
+          >
+            {inboxLinks.length}/9
+          </div>
+          <button
+            onClick={submitSearch}
+            title="Search or capture link"
+            className="p-1.5 rounded-full bg-accent-violet/20 text-accent-violet
+                       hover:bg-accent-violet/30 transition-all duration-200 flex-shrink-0"
+          >
+            <ArrowUp size={14} />
+          </button>
         </div>
       </div>
 
-      {/* Links list */}
+      {/* Board card grid */}
       <AnimatePresence mode="popLayout">
         {filteredLinks.length === 0 ? (
           <motion.div
@@ -174,8 +220,8 @@ export function CollectionView({ collectionId }: CollectionViewProps) {
             </div>
             <p className="text-sm text-text-secondary">
               {search
-                ? "No matching links"
-                : "This collection is empty"}
+                ? "No matching cards"
+                : "This board is empty"}
             </p>
             <p className="text-xs text-text-ghost mt-1">
               {search
@@ -184,14 +230,19 @@ export function CollectionView({ collectionId }: CollectionViewProps) {
             </p>
           </motion.div>
         ) : (
-          <div className="space-y-3">
+          <div className="link-card-grid pb-12">
             {filteredLinks.map((link) => (
-              <LinkCard
-                key={link.id}
-                link={link}
-                mode="library"
-                activeCollectionId={collectionId}
-              />
+              <div key={link.id}>
+                <SavedLinkCard link={link} activeCollectionId={collectionId} />
+                {link.note && (
+                  <p
+                    title={link.note}
+                    className="mt-2 truncate px-1 text-[11px] leading-4 text-accent-violet/85"
+                  >
+                    {link.note}
+                  </p>
+                )}
+              </div>
             ))}
           </div>
         )}

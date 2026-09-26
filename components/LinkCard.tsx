@@ -257,11 +257,11 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
               </div>
             </div>
 
-            {/* Collections — only show in library mode when collections exist */}
+            {/* Boards — collection storage is retained for compatibility */}
             {mode === "library" && collections.length > 0 && (
               <div>
                 <label className="text-[10px] text-text-ghost uppercase tracking-wider font-medium mb-1.5 flex items-center gap-1.5">
-                  Collections
+                  Boards
                 </label>
                 <div className="flex flex-wrap gap-1.5">
                   {collections.map((col) => {
@@ -313,7 +313,7 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
             </>
           ) : (
             <>
-              {/* Remove from collection (when viewing inside a collection) */}
+              {/* Remove from board (when viewing inside a board) */}
               {activeCollectionId && (
                 <button
                   onClick={() =>
@@ -324,7 +324,7 @@ export function LinkCard({ link, mode, activeCollectionId }: LinkCardProps) {
                              hover:bg-accent-amber-soft transition-all duration-200"
                 >
                   <MinusCircle size={14} />
-                  Remove
+                  Remove from board
                 </button>
               )}
               <button

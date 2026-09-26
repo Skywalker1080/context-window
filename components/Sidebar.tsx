@@ -43,12 +43,12 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
     (user?.displayName?.trim()?.[0] ?? user?.email?.trim()?.[0] ?? "U")
   ).toUpperCase();
 
-  // Collection creation state
+  // Board creation state (backed by the existing collections table)
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState("");
   const createInputRef = useRef<HTMLInputElement>(null);
 
-  // Collection rename state
+  // Board rename state
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const renameInputRef = useRef<HTMLInputElement>(null);
@@ -233,11 +233,11 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
       {/* Spacer */}
       <div className="h-8 flex-shrink-0" />
 
-      {/* Collections Section */}
+      {/* Boards Section */}
       <div className="flex-1 min-h-0 flex flex-col">
         <div className="flex items-center justify-between px-3 mb-2">
           <span className="text-[12px] text-text-ghost font-inter tracking-wider font-medium">
-            Collections
+            Boards
           </span>
           <button
             onClick={() => {
@@ -246,7 +246,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
             }}
             className="p-1 rounded-md text-text-ghost hover:text-accent-violet
                        hover:bg-accent-violet-soft transition-all duration-200"
-            title="New collection"
+            title="New board"
           >
             <Plus size={14} />
           </button>
@@ -278,7 +278,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
                       }
                     }}
                     onBlur={handleCreate}
-                    placeholder="Collection name…"
+                    placeholder="Board name…"
                     className="flex-1 min-w-0 bg-transparent text-xs text-text-primary
                                placeholder-text-ghost outline-none border-b border-accent-violet/30
                                py-1 transition-colors"
@@ -288,7 +288,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
             )}
           </AnimatePresence>
 
-          {/* Collection items */}
+          {/* Board items */}
           {collections.map((col) => {
             const isActive =
               activeView === "collection" && activeCollectionId === col.id;
@@ -324,7 +324,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
                     </button>
                   </div>
                 ) : (
-                  /* Normal collection button */
+                  /* Normal board button */
                   <button
                     onClick={() => onViewChange("collection", col.id)}
                     className={`relative w-full flex items-center gap-2.5 px-3 py-2 rounded-xl
@@ -408,7 +408,7 @@ export function Sidebar({ activeView, activeCollectionId, onViewChange }: Sideba
           {/* Empty state */}
           {collections.length === 0 && !isCreating && (
             <p className="px-3 py-3 text-[10px] text-text-ghost text-center leading-relaxed">
-              Organize links into collections
+              Organize saved links into boards
             </p>
           )}
         </div>
