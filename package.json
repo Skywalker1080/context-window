@@ -12,8 +12,11 @@
     "backfill:enrichments": "node scripts/backfill-enrichments.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
     "@supabase/supabase-js": "^2.105.1",
     "framer-motion": "^12.38.0",
+    "heic2any": "^0.0.4",
     "idb": "^8.0.3",
     "lucide-react": "^1.7.0",
     "next": "16.2.2",

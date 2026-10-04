@@ -60,6 +60,9 @@ export class ImageStorageStack extends cdk.Stack {
     });
 
     // Least-privilege presigner for the Next.js /api/images/presign route.
+    // Size enforcement happens in the route (declared size checked before
+    // minting) and client-side: s3:content-length-range is a POST-policy
+    // key and would deny every PutObject if placed on this statement.
     // Provision keys out-of-band:
     //   aws iam create-access-key --user-name <user> -> Vercel env.
     const presigner = new iam.User(this, 'ImageUploadPresigner', {
@@ -70,9 +73,6 @@ export class ImageStorageStack extends cdk.Stack {
         effect: iam.Effect.ALLOW,
         actions: ['s3:PutObject'],
         resources: [bucket.arnForObjects('originals/*')],
-        conditions: {
-          NumericLessThanEquals: { 's3:content-length-range': 20 * 1024 * 1024 },
-        },
       })
     );
 

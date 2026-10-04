@@ -16,6 +16,11 @@ import type {
 import { supabase } from "@/lib/supabase";
 import { cacheLinks, loadCachedLinks } from "@/lib/offline-cache";
 import { assertOnline } from "@/lib/offline";
+import {
+  prepareImageFile,
+  uploadPreparedImage,
+  type PreparedImage,
+} from "@/lib/images";
 import { useAuth } from "./AuthContext";
 import type { LinkItem, LinkStatus, ItemKind, ImageMetadata, FilterState, InsightData, EnrichmentStatus } from "@/types";
 
@@ -27,6 +32,7 @@ interface LinksContextValue {
   filter: FilterState;
   setFilter: (filter: Partial<FilterState>) => void;
   addLink: (url: string, note?: string, tags?: string[]) => Promise<void>;
+  addImageFile: (file: File, opts?: { note?: string; tags?: string[] }) => Promise<LinkItem>;
   triageLink: (
     id: string,
     status: LinkStatus,
@@ -52,6 +58,7 @@ const INBOX_LIMIT = 9;
 const LINKS_TABLE = "links";
 
 export const DEFAULT_CATEGORIES = [
+  { name: "Images", icon: "" },
   { name: "Youtube", icon: "" },
   { name: "Documentation", icon: "" },
   { name: "Github", icon: "" },
@@ -455,8 +462,67 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     [user, upsertLocal]
   );
 
-  const triageLink = useCallback(
+  const addImageFile = useCallback(
     async (
+      file: File,
+      opts?: { note?: string; tags?: string[] }
+    ): Promise<LinkItem> => {
+      if (!user) throw new Error("Sign in to upload images");
+      assertOnline("upload images");
+
+      const prepared: PreparedImage = await prepareImageFile(file);
+
+      // Content-hash dedupe: re-uploading the same bytes returns the
+      // existing card instead of burning storage + PUTs.
+      const dupe = linksRef.current.find(
+        (l) =>
+          l.kind === "image" &&
+          typeof l.metadata?.hash === "string" &&
+          l.metadata.hash === prepared.hash
+      );
+      if (dupe) return dupe;
+
+      const presigned = await uploadPreparedImage(prepared);
+      const publicUrl = presigned.cdnBase
+        ? `${presigned.cdnBase.replace(/\/$/, "")}/${presigned.key}`
+        : presigned.key;
+
+      const { data, error } = await supabase
+        .from(LINKS_TABLE)
+        .insert({
+          user_id: user.uid,
+          kind: "image",
+          url: publicUrl,
+          title: prepared.fileName,
+          description: "",
+          favicon: "",
+          thumbnail: "",
+          file_key: presigned.key,
+          mime_type: prepared.mimeType,
+          width: prepared.width,
+          height: prepared.height,
+          size_bytes: prepared.sizeBytes,
+          metadata: { hash: prepared.hash },
+          note: opts?.note ?? "",
+          status: "library",
+          category: "Images",
+          tags: opts?.tags ?? [],
+          collection_ids: [],
+        })
+        .select("*")
+        .single();
+
+      if (error || !data) {
+        throw error ?? new Error("Failed to save image");
+      }
+      const inserted = rowToLink(data as LinkRow);
+      upsertLocal(inserted);
+      return inserted;
+    },
+    [user, upsertLocal]
+  );
+
+  const triageLink = useCallback(    async (
       id: string,
       status: LinkStatus,
       category?: string,
@@ -673,6 +739,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         filter,
         setFilter,
         addLink,
+        addImageFile,
         triageLink,
         updateLink,
         deleteLink,
