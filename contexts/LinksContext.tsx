@@ -19,6 +19,7 @@ import { assertOnline } from "@/lib/offline";
 import {
   prepareImageFile,
   uploadPreparedImage,
+  requestVariantProcessing,
   type PreparedImage,
 } from "@/lib/images";
 import { useAuth } from "./AuthContext";
@@ -585,6 +586,8 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       }
       const inserted = rowToLink(data as LinkRow);
       upsertLocal(inserted);
+      // Eager variants (seconds); daily cron is the backstop.
+      void requestVariantProcessing(inserted.id);
       return inserted;
     },
     [user, upsertLocal]

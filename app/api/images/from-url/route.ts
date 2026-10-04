@@ -5,6 +5,7 @@ import { lookup } from "dns/promises";
 import { isIP } from "net";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import sharp from "sharp";
+import { processOne } from "@/lib/image-worker";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
@@ -299,5 +300,33 @@ export async function POST(req: Request) {
     console.error("/api/images/from-url insert error:", error);
     return NextResponse.json({ error: "Failed to save image" }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, id: (data as { id: string }).id });
+  const id = (data as { id: string }).id;
+
+  // Eager variants: await inline (a few seconds) so the card has srcset
+  // immediately. Non-fatal — the daily cron backstop covers failures.
+  try {
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceKey) {
+      const service = createClient(SUPABASE_URL, serviceKey, {
+        auth: { persistSession: false },
+      });
+      await processOne(
+        service,
+        new S3Client({ region: IMAGE_REGION }),
+        IMAGE_BUCKET,
+        IMAGE_CDN_BASE,
+        {
+          id,
+          user_id: userId,
+          file_key: key,
+          mime_type: sniffed,
+          metadata: { hash, sourceUrl: url },
+        }
+      );
+    }
+  } catch (err) {
+    console.warn("/api/images/from-url eager variants failed (cron covers):", err);
+  }
+
+  return NextResponse.json({ ok: true, id });
 }

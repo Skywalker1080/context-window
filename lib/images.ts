@@ -164,6 +164,26 @@ export interface PresignedUpload {
   cdnBase: string;
 }
 
+/** Fire-and-forget: ask the server to build thumb/display variants now.
+ *  The daily cron is the backstop; failures here are silent by design. */
+export async function requestVariantProcessing(id: string): Promise<void> {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) return;
+    await fetch("/api/images/process-variants", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ id }),
+    });
+  } catch {
+    // Cron backstop covers it.
+  }
+}
+
 const DIRECT_IMAGE_EXT = /\.(jpe?g|png|webp|avif|he(ic|if))(\?.*)?$/i;
 
 /** Extension heuristic: does this URL look like a direct image file? */

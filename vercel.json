@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/images/process-variants",
-      "schedule": "*/10 * * * *"
+      "schedule": "30 3 * * *"
     },
     {
       "path": "/api/images/sweep",
