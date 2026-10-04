@@ -160,6 +160,42 @@ export interface PresignedUpload {
   cdnBase: string;
 }
 
+const DIRECT_IMAGE_EXT = /\.(jpe?g|png|webp|avif|he(ic|if))(\?.*)?$/i;
+
+/** Extension heuristic: does this URL look like a direct image file? */
+export function isDirectImageUrl(url: string): boolean {
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`);
+    return DIRECT_IMAGE_EXT.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+}
+
+/** Re-host a remote image URL into the library. Returns the new row id. */
+export async function importImageUrl(
+  url: string,
+  opts?: { note?: string; tags?: string[] }
+): Promise<{ id: string; deduped: boolean }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("Sign in to save images");
+
+  const res = await fetch("/api/images/from-url", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ url, note: opts?.note ?? "", tags: opts?.tags ?? [] }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body?.error || "Couldn't save that image");
+  }
+  return { id: body.id as string, deduped: Boolean(body.deduped) };
+}
+
 /** Mint a scoped PUT URL (auth via Supabase JWT) and upload bytes to S3. */
 export async function uploadPreparedImage(
   prepared: PreparedImage

@@ -17,6 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { showToast } from "@/lib/toast";
 import { OfflineError } from "@/lib/offline";
 import { parseQuickCapture } from "@/lib/quick-capture";
+import { isDirectImageUrl, importImageUrl } from "@/lib/images";
 import type { LinkItem } from "@/types";
 import { SavedLinkCard } from "./SavedLinkCard";
 
@@ -103,6 +104,25 @@ export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
   const capturePastedLink = async (): Promise<boolean> => {
     const parsed = parseQuickCapture(filter.search);
     if (!parsed) return false;
+    // Direct image URLs skip the inbox queue and land in the library.
+    if (isDirectImageUrl(parsed.url)) {
+      try {
+        const { deduped } = await importImageUrl(parsed.url, { note: parsed.note });
+        showToast({
+          kind: "success",
+          title: deduped ? "Image already in library" : "Image saved to library",
+        });
+        setFilter({ search: "" });
+      } catch (err) {
+        if (!(err instanceof OfflineError)) {
+          showToast({
+            kind: "error",
+            title: err instanceof Error ? err.message : "Failed to save image",
+          });
+        }
+      }
+      return true;
+    }
     try {
       await addLink(parsed.url, parsed.note, []);
       showToast({ kind: "success", title: "Link captured to queue" });
