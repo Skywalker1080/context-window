@@ -92,6 +92,124 @@ export function LinkDetailPage({ linkId, onBack }: LinkDetailPageProps) {
     (t) => !link.tags.includes(t)
   );
 
+  // Images (and future v2 documents) open full-page on this same route.
+  if (link.kind === "image") {
+    const variants = link.metadata?.variants as
+      | { thumb?: string; display?: string }
+      | undefined;
+    return (
+      <motion.article
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: "easeOut" }}
+        className="mx-auto max-w-3xl px-4 lg:px-0 pb-24"
+      >
+        <div className="mb-8 flex items-center justify-between">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 -ml-2 text-xs text-text-muted transition-colors hover:bg-surface-overlay hover:text-text-primary"
+          >
+            <ArrowLeft size={14} />
+            Back
+          </button>
+          <a
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border-subtle bg-surface px-3 py-1.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-raised hover:border-border-default"
+          >
+            Open original
+            <ExternalLink size={12} />
+          </a>
+        </div>
+
+        <div className="mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-black/40">
+          <img
+            src={variants?.display ?? link.url}
+            srcSet={
+              variants?.thumb && variants?.display
+                ? `${variants.thumb} 400w, ${variants.display} 1600w`
+                : undefined
+            }
+            alt={link.title || "Saved image"}
+            className="block w-full h-auto max-h-[70vh] object-contain"
+          />
+        </div>
+
+        <header className="mb-8">
+          <div className="mb-3 flex items-center gap-2 text-[10px] font-mono uppercase tracking-wider text-text-ghost">
+            <span>Image</span>
+            <span>·</span>
+            <span className="flex items-center gap-1">
+              <Clock size={10} />
+              {new Date(link.createdAt).toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })}
+            </span>
+            {link.width && link.height && (
+              <>
+                <span>·</span>
+                <span>
+                  {link.width} × {link.height}
+                </span>
+              </>
+            )}
+            {link.category && (
+              <>
+                <span>·</span>
+                <span className="rounded-full bg-surface px-2 py-0.5 text-text-muted normal-case">
+                  {link.category}
+                </span>
+              </>
+            )}
+          </div>
+          <h1 className="text-3xl font-semibold leading-tight tracking-tight text-text-primary">
+            {link.title || "Untitled image"}
+          </h1>
+        </header>
+
+        {(link.tags.length > 0 || visibleSuggestions.length > 0) && (
+          <section className="mb-8">
+            <div className="mb-3 flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-text-ghost">
+              <Tag size={11} />
+              Tags
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {link.tags.map((t) => (
+                <span
+                  key={t}
+                  className="group inline-flex items-center gap-1 rounded-full bg-surface px-3 py-1 text-xs text-text-primary"
+                >
+                  #{t}
+                  <button
+                    onClick={() => removeTag(t)}
+                    aria-label={`Remove tag ${t}`}
+                    className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-accent-rose"
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {link.note && (
+          <section className="mb-8 rounded-xl border border-border-subtle bg-surface p-5">
+            <div className="mb-2 text-[10px] font-mono uppercase tracking-wider text-text-ghost">
+              Your note
+            </div>
+            <p className="text-sm leading-relaxed text-text-secondary whitespace-pre-wrap">
+              {link.note}
+            </p>
+          </section>
+        )}
+      </motion.article>
+    );
+  }
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 8 }}

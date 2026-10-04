@@ -11,15 +11,17 @@ import {
   Sparkles,
   Loader2,
   ArrowUp,
+  ImagePlus,
 } from "lucide-react";
 import { useLinks, DEFAULT_CATEGORIES } from "@/contexts/LinksContext";
 import { supabase } from "@/lib/supabase";
 import { showToast } from "@/lib/toast";
 import { OfflineError } from "@/lib/offline";
 import { parseQuickCapture } from "@/lib/quick-capture";
-import { isDirectImageUrl, importImageUrl } from "@/lib/images";
+import { RejectedImageError, isDirectImageUrl, importImageUrl } from "@/lib/images";
 import type { LinkItem } from "@/types";
 import { SavedLinkCard } from "./SavedLinkCard";
+import { ImageCard } from "./ImageCard";
 
 type AiHit = { linkId: string; similarity: number };
 
@@ -28,7 +30,7 @@ interface LibraryViewProps {
 }
 
 export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
-  const { links, filteredLinks, filter, setFilter, loading, insights, addLink, inboxLinks, inboxFull } =
+  const { links, filteredLinks, filter, setFilter, loading, insights, addLink, addImageFile, inboxLinks, inboxFull } =
     useLinks();
   const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
   const [aiHits, setAiHits] = useState<AiHit[] | null>(null);
@@ -36,6 +38,59 @@ export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
   const [aiError, setAiError] = useState<string | null>(null);
 
   const requestIdRef = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Optimistic uploads: blob previews visible in this tab only until the
+  // server row lands via upsertLocal (same tab) or Realtime (other tabs).
+  const [pending, setPending] = useState<
+    { key: string; url: string; name: string }[]
+  >([]);
+  const [dragging, setDragging] = useState(false);
+  const dragDepthRef = useRef(0);
+
+  const uploadFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files).filter((f) => f.size > 0);
+    if (list.length === 0) return;
+    for (const file of list) {
+      const key =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`;
+      const url = URL.createObjectURL(file);
+      setPending((prev) => [...prev, { key, url, name: file.name }]);
+      try {
+        const item = await addImageFile(file);
+        showToast({
+          kind: "success",
+          title: item.title
+            ? `Saved ${item.title}`
+            : "Image saved to library",
+        });
+      } catch (err) {
+        if (err instanceof OfflineError) {
+          // Global toast already surfaced the offline message.
+        } else if (err instanceof RejectedImageError) {
+          showToast({ kind: "error", title: err.message });
+        } else {
+          showToast({
+            kind: "error",
+            title: err instanceof Error ? err.message : "Failed to save image",
+          });
+        }
+      } finally {
+        URL.revokeObjectURL(url);
+        setPending((prev) => prev.filter((p) => p.key !== key));
+      }
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const files = e.clipboardData?.files;
+    if (files && files.length > 0) {
+      e.preventDefault();
+      void uploadFiles(files);
+    }
+  };
 
   const allTags = Array.from(
     new Set(insights.topTags.map((t) => t.name))
@@ -176,7 +231,47 @@ export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
   }
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4 relative"
+      onPaste={handlePaste}
+      onDragEnter={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer?.types.includes("Files")) {
+          dragDepthRef.current++;
+          setDragging(true);
+        }
+      }}
+      onDragOver={(e) => e.preventDefault()}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+        if (dragDepthRef.current === 0) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        dragDepthRef.current = 0;
+        setDragging(false);
+        if (e.dataTransfer?.files.length) void uploadFiles(e.dataTransfer.files);
+      }}
+    >
+      {dragging && (
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-2xl border-2 border-dashed border-accent-violet/60 bg-accent-violet/10 backdrop-blur-[1px]">
+          <p className="text-sm font-medium text-accent-violet">
+            Drop images to save to library
+          </p>
+        </div>
+      )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) void uploadFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
@@ -253,6 +348,14 @@ export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
                        hover:bg-accent-violet/30 transition-all duration-200 flex-shrink-0"
           >
             <ArrowUp size={14} />
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload images (or drag & drop anywhere here)"
+            className="p-1.5 rounded-full text-text-ghost hover:text-accent-violet
+                       hover:bg-accent-violet/10 transition-all duration-200 flex-shrink-0"
+          >
+            <ImagePlus size={14} />
           </button>
         </div>
       </div>
@@ -428,15 +531,36 @@ export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
                     {Math.round(similarity * 100)}% match
                   </span>
                 )}
-                <SavedLinkCard link={link} onOpenDetail={onOpenDetail ? (l) => onOpenDetail(l.id) : undefined} />
-                {link.note && (
-                  <p
-                    title={link.note}
-                    className="mt-2 truncate px-1 text-[11px] leading-4 text-accent-violet/85"
-                  >
-                    {link.note}
-                  </p>
+                {link.kind === "image" ? (
+                  <ImageCard link={link} onOpenDetail={onOpenDetail ? (l) => onOpenDetail(l.id) : undefined} />
+                ) : (
+                  <>
+                    <SavedLinkCard link={link} onOpenDetail={onOpenDetail ? (l) => onOpenDetail(l.id) : undefined} />
+                    {link.note && (
+                      <p
+                        title={link.note}
+                        className="mt-2 truncate px-1 text-[11px] leading-4 text-accent-violet/85"
+                      >
+                        {link.note}
+                      </p>
+                    )}
+                  </>
                 )}
+              </div>
+            ))}
+            {pending.map((p) => (
+              <div
+                key={p.key}
+                className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#20201f] aspect-square"
+              >
+                <img
+                  src={p.url}
+                  alt={p.name}
+                  className="absolute inset-0 h-full w-full object-cover opacity-70"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <Loader2 size={20} className="text-white animate-spin" />
+                </div>
               </div>
             ))}
           </div>

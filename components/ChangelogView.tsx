@@ -13,7 +13,7 @@ export function ChangelogView() {
         <div>
           <h2 className="text-sm font-semibold text-text-primary">What's New</h2>
           <p className="text-[10px] text-text-muted font-mono uppercase tracking-wider">
-            Version 1.3.0
+            Version 1.4.0
           </p>
         </div>
       </div>
@@ -25,6 +25,18 @@ export function ChangelogView() {
       >
         <div className="space-y-8">
           {/* Item 1 */}
+          <div className="flex items-start gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-text-primary mb-1.5 tracking-tight">
+                Image library — drag, paste, or drop a link
+              </h3>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Save images straight to your library: drag &amp; drop anywhere in the Library view, paste an image from your clipboard, or paste a direct image link. Images skip the inbox queue, sync instantly across open tabs, and open full-page on double-click. GIF and SVG aren&apos;t supported in this first version.
+              </p>
+            </div>
+          </div>
+
+          {/* Item 2 */}
           <div className="flex items-start gap-4">
             <div>
               <h3 className="text-sm font-bold text-text-primary mb-1.5 tracking-tight">

@@ -236,15 +236,27 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     linksRef.current = links;
   }, [links]);
 
-  const upsertLocal = useCallback(
-    (incoming: LinkItem) => {
+  // Same-device instant sync: BroadcastChannel covers tab-to-tab latency
+  // that Realtime round-trips can't. Server Realtime stays the cross-device
+  // source of truth; last-write-wins on updatedAt everywhere.
+  // Assigned in an effect: id generation is impure and must not run in render.
+  const tabIdRef = useRef<string>("");
+  useEffect(() => {
+    if (!tabIdRef.current) {
+      tabIdRef.current =
+        typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random()}`;
+    }
+  }, []);
+  const bcRef = useRef<BroadcastChannel | null>(null);
+
+  const applySilent = useCallback(
+    (fn: (prev: LinkItem[]) => LinkItem[]) => {
       if (!user) return;
       const uid = user.uid;
       setLinks((prev) => {
-        const exists = prev.some((l) => l.id === incoming.id);
-        const next = exists
-          ? prev.map((l) => (l.id === incoming.id ? incoming : l))
-          : [incoming, ...prev];
+        const next = fn(prev);
         cacheLinks(uid, next);
         return next;
       });
@@ -252,18 +264,72 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     [user]
   );
 
+  const broadcast = useCallback((message: { type: "upsert"; item: LinkItem } | { type: "remove"; id: string }) => {
+    try {
+      bcRef.current?.postMessage({ ...message, origin: tabIdRef.current });
+    } catch {
+      // BroadcastChannel failures are non-fatal; Realtime still converges.
+    }
+  }, []);
+
+  const upsertLocal = useCallback(
+    (incoming: LinkItem) => {
+      if (!user) return;
+      // Unconditional replace: the server re-apply after a write must win
+      // over the optimistic row even under clock skew. LWW lives only in
+      // the BroadcastChannel receiver below.
+      applySilent((prev) => {
+        const exists = prev.some((l) => l.id === incoming.id);
+        return exists
+          ? prev.map((l) => (l.id === incoming.id ? incoming : l))
+          : [incoming, ...prev];
+      });
+      broadcast({ type: "upsert", item: incoming });
+    },
+    [user, applySilent, broadcast]
+  );
+
   const removeLocal = useCallback(
     (id: string) => {
       if (!user) return;
-      const uid = user.uid;
+      applySilent((prev) => prev.filter((l) => l.id !== id));
+      broadcast({ type: "remove", id });
+    },
+    [user, applySilent, broadcast]
+  );
+
+  useEffect(() => {
+    if (!user || typeof BroadcastChannel === "undefined") return;
+    const uid = user.uid;
+    const bc = new BroadcastChannel(`cw-links:${uid}`);
+    bcRef.current = bc;
+    bc.onmessage = (event: MessageEvent) => {
+      const msg = event.data as
+        | { type: "upsert"; item: LinkItem; origin: string }
+        | { type: "remove"; id: string; origin: string }
+        | null;
+      if (!msg || msg.origin === tabIdRef.current) return;
       setLinks((prev) => {
-        const next = prev.filter((l) => l.id !== id);
-        cacheLinks(uid, next);
+        let next = prev;
+        if (msg.type === "upsert") {
+          const incoming = msg.item;
+          const current = prev.find((l) => l.id === incoming.id);
+          if (!current) next = [incoming, ...prev];
+          else if (incoming.updatedAt >= current.updatedAt) {
+            next = prev.map((l) => (l.id === incoming.id ? incoming : l));
+          }
+        } else if (msg.type === "remove") {
+          next = prev.filter((l) => l.id !== msg.id);
+        }
+        if (next !== prev) cacheLinks(uid, next);
         return next;
       });
-    },
-    [user]
-  );
+    };
+    return () => {
+      bc.close();
+      if (bcRef.current === bc) bcRef.current = null;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!user) {
