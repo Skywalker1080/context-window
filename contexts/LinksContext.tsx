@@ -17,7 +17,7 @@ import { supabase } from "@/lib/supabase";
 import { cacheLinks, loadCachedLinks } from "@/lib/offline-cache";
 import { assertOnline } from "@/lib/offline";
 import { useAuth } from "./AuthContext";
-import type { LinkItem, LinkStatus, FilterState, InsightData, EnrichmentStatus } from "@/types";
+import type { LinkItem, LinkStatus, ItemKind, ImageMetadata, FilterState, InsightData, EnrichmentStatus } from "@/types";
 
 interface LinksContextValue {
   links: LinkItem[];
@@ -66,11 +66,18 @@ export const DEFAULT_CATEGORIES = [
 interface LinkRow {
   id: string;
   user_id: string;
+  kind: ItemKind | null;
   url: string;
   title: string | null;
   description: string | null;
   favicon: string | null;
   thumbnail: string | null;
+  file_key: string | null;
+  mime_type: string | null;
+  width: number | null;
+  height: number | null;
+  size_bytes: number | null;
+  metadata: ImageMetadata | null;
   note: string | null;
   status: LinkStatus;
   category: string | null;
@@ -88,11 +95,18 @@ function rowToLink(row: LinkRow): LinkItem {
   return {
     id: row.id,
     userId: row.user_id,
+    kind: row.kind ?? "link",
     url: row.url,
     title: row.title ?? "",
     description: row.description ?? "",
     favicon: row.favicon ?? "",
     thumbnail: row.thumbnail ?? "",
+    fileKey: row.file_key ?? "",
+    mimeType: row.mime_type ?? "",
+    width: row.width ?? null,
+    height: row.height ?? null,
+    sizeBytes: row.size_bytes ?? null,
+    metadata: row.metadata ?? {},
     note: row.note ?? "",
     status: row.status,
     category: row.category ?? "Website",
@@ -280,9 +294,16 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       const cached = await loadCachedLinks(uid);
       if (cancelled) return;
       if (cached.length) {
-        // Normalize older cached records that predate LLM enrichment columns.
+        // Normalize older cached records that predate item-kind/file columns.
         const normalized = cached.map((l) => ({
           ...l,
+          kind: l.kind ?? "link",
+          fileKey: l.fileKey ?? "",
+          mimeType: l.mimeType ?? "",
+          width: l.width ?? null,
+          height: l.height ?? null,
+          sizeBytes: l.sizeBytes ?? null,
+          metadata: l.metadata ?? {},
           summary: l.summary ?? "",
           suggestedTags: l.suggestedTags ?? [],
           enrichmentStatus: l.enrichmentStatus ?? "pending",
@@ -484,6 +505,13 @@ export function LinksProvider({ children }: { children: ReactNode }) {
       if (updates.favicon !== undefined) row.favicon = updates.favicon;
       if (updates.thumbnail !== undefined)
         row.thumbnail = updates.thumbnail;
+      if (updates.fileKey !== undefined) row.file_key = updates.fileKey;
+      if (updates.mimeType !== undefined) row.mime_type = updates.mimeType;
+      if (updates.width !== undefined) row.width = updates.width;
+      if (updates.height !== undefined) row.height = updates.height;
+      if (updates.sizeBytes !== undefined)
+        row.size_bytes = updates.sizeBytes;
+      if (updates.metadata !== undefined) row.metadata = updates.metadata;
       if (updates.note !== undefined) row.note = updates.note;
       if (updates.status !== undefined) row.status = updates.status;
       if (updates.category !== undefined) row.category = updates.category;

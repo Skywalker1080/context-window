@@ -2,17 +2,39 @@
 
 export type LinkStatus = "inbox" | "library" | "deleted";
 
+export type ItemKind = "link" | "image" | "document";
+
+export interface ImageMetadata {
+  hash?: string;
+  blurhash?: string;
+  variants?: {
+    thumb?: string;
+    display?: string;
+  };
+  exifOrientation?: number;
+  /** v2: overflow pointer when doc body exceeds inline limit. */
+  docRef?: string;
+  [key: string]: unknown;
+}
+
 export type View = "inbox" | "library" | "insights" | "collection" | "changelog" | "settings" | "link-detail";
 
 export type EnrichmentStatus = "pending" | "enriching" | "done" | "failed";
 
 export interface LinkItem {
   id: string;
+  kind: ItemKind;
   url: string;
   title: string;
   description: string;
   favicon: string;
   thumbnail: string;
+  fileKey: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+  sizeBytes: number | null;
+  metadata: ImageMetadata;
   note: string;
   status: LinkStatus;
   category: string;
