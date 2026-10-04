@@ -75,7 +75,11 @@ async function convertHeic(blob: Blob): Promise<Blob> {
 async function downscale(blob: Blob, mimeType: string): Promise<Blob> {
   const bitmap = await createImageBitmap(blob);
   const longest = Math.max(bitmap.width, bitmap.height);
-  if (longest <= MAX_EDGE_PX) {
+  // JPEG/WebP always round-trip through canvas even when already small:
+  // that strips EXIF (GPS, orientation) before bytes leave the device.
+  // PNG/AVIF pass through untouched to avoid recompression cost.
+  const mustStrip = mimeType === "image/jpeg" || mimeType === "image/webp";
+  if (longest <= MAX_EDGE_PX && !mustStrip) {
     bitmap.close();
     return blob;
   }

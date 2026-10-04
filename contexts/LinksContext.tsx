@@ -33,6 +33,8 @@ interface LinksContextValue {
   setFilter: (filter: Partial<FilterState>) => void;
   addLink: (url: string, note?: string, tags?: string[]) => Promise<void>;
   addImageFile: (file: File, opts?: { note?: string; tags?: string[] }) => Promise<LinkItem>;
+  /** Pull one row by id into local state (post-import instant apply). */
+  adoptImageRow: (id: string) => Promise<void>;
   triageLink: (
     id: string,
     status: LinkStatus,
@@ -588,6 +590,26 @@ export function LinksProvider({ children }: { children: ReactNode }) {
     [user, upsertLocal]
   );
 
+    // Instant apply for server-inserted rows (paste-URL import): the writer
+  // can't upsertLocal directly, so the originating tab pulls the row instead
+  // of waiting for the Realtime round-trip. No-op offline / on failure —
+  // Realtime still converges.
+  const adoptImageRow = useCallback(
+    async (id: string) => {
+      try {
+        const { data } = await supabase
+          .from(LINKS_TABLE)
+          .select("*")
+          .eq("id", id)
+          .single();
+        if (data) upsertLocal(rowToLink(data as LinkRow));
+      } catch {
+        // Realtime will deliver it.
+      }
+    },
+    [upsertLocal]
+  );
+
   const triageLink = useCallback(    async (
       id: string,
       status: LinkStatus,
@@ -806,6 +828,7 @@ export function LinksProvider({ children }: { children: ReactNode }) {
         setFilter,
         addLink,
         addImageFile,
+        adoptImageRow,
         triageLink,
         updateLink,
         deleteLink,

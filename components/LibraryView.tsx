@@ -30,7 +30,7 @@ interface LibraryViewProps {
 }
 
 export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
-  const { links, filteredLinks, filter, setFilter, loading, insights, addLink, addImageFile, inboxLinks, inboxFull } =
+  const { links, filteredLinks, filter, setFilter, loading, insights, addLink, addImageFile, adoptImageRow, inboxLinks, inboxFull } =
     useLinks();
   const [aiSearchEnabled, setAiSearchEnabled] = useState(false);
   const [aiHits, setAiHits] = useState<AiHit[] | null>(null);
@@ -162,7 +162,9 @@ export function LibraryView({ onOpenDetail }: LibraryViewProps = {}) {
     // Direct image URLs skip the inbox queue and land in the library.
     if (isDirectImageUrl(parsed.url)) {
       try {
-        const { deduped } = await importImageUrl(parsed.url, { note: parsed.note });
+        const { deduped, id } = await importImageUrl(parsed.url, { note: parsed.note });
+        // Instant apply in this tab; Realtime covers the rest.
+        void adoptImageRow(id);
         showToast({
           kind: "success",
           title: deduped ? "Image already in library" : "Image saved to library",

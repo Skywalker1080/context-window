@@ -20,10 +20,21 @@ export class ImageStorageStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
+    const accessLogs = new s3.Bucket(this, 'ImageAccessLogs', {
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      // Logs are operational, not user data: safe to destroy with the stack.
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+      lifecycleRules: [{ id: 'expire-logs', expiration: cdk.Duration.days(90) }],
+    });
+
     const bucket = new s3.Bucket(this, 'ImageBucket', {
       bucketName: `context-window-images-${this.account}-${this.region}`,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      serverAccessLogsBucket: accessLogs,
+      serverAccessLogsPrefix: 'image-bucket/',
       versioned: false,
       // User data: never auto-delete on stack destroy.
       removalPolicy: cdk.RemovalPolicy.RETAIN,

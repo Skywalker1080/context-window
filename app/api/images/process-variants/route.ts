@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+  DeleteObjectsCommand,
+} from "@aws-sdk/client-s3";
 import sharp from "sharp";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -61,7 +66,29 @@ export async function GET(req: Request) {
 
   const s3 = new S3Client({ region: IMAGE_REGION });
   let processed = 0;
+  let quarantined = 0;
   const errors: { id: string; error: string }[] = [];
+
+  const dropPoisonRow = async (row: PendingRow, reason: string) => {
+    // Undecodable/oversize originals would otherwise retry forever
+    // (thumbnail stays ''). Self-clean: remove bytes + row, log it.
+    try {
+      await s3.send(
+        new DeleteObjectsCommand({
+          Bucket: IMAGE_BUCKET,
+          Delete: { Objects: [{ Key: row.file_key }] },
+        })
+      );
+      await sb.from("links").delete().eq("id", row.id);
+      quarantined++;
+    } catch (err) {
+      console.error(`/api/images/process-variants quarantine failed for ${row.id}:`, err);
+      errors.push({
+        id: row.id,
+        error: err instanceof Error ? err.message : "unknown",
+      });
+    }
+  };
 
   for (const row of (rows ?? []) as PendingRow[]) {
     const m = /^originals\/([^/]+)\/([^/]+)\.[^./]+$/.exec(row.file_key);
@@ -82,11 +109,19 @@ export async function GET(req: Request) {
         chunks.push(chunk instanceof Uint8Array ? chunk : new Uint8Array(chunk as ArrayBuffer));
       }
       const original = Buffer.concat(chunks);
-      if (original.byteLength === 0) throw new Error("empty original");
+      // Belt-and-braces: presigned PUTs can't carry a Content-Length
+      // condition, so enforce the 20MB cap on actual bytes here.
+      if (original.byteLength === 0 || original.byteLength > 20 * 1024 * 1024) {
+        await dropPoisonRow(row, "oversize-or-empty");
+        continue;
+      }
 
       const pipeline = sharp(original, { failOn: "none" });
-      const meta = await pipeline.metadata();
-      if (!meta.width || !meta.height) throw new Error("undecodable image");
+      const meta = await pipeline.metadata().catch(() => null);
+      if (!meta?.width || !meta?.height) {
+        await dropPoisonRow(row, "undecodable");
+        continue;
+      }
 
       const [thumb, display] = await Promise.all([
         sharp(original)
@@ -152,9 +187,9 @@ export async function GET(req: Request) {
   }
 
   console.log(
-    JSON.stringify({ job: "image-variants", processed, errorCount: errors.length })
+    JSON.stringify({ job: "image-variants", processed, quarantined, errorCount: errors.length })
   );
-  return NextResponse.json({ ok: true, processed, errorCount: errors.length, errors });
+  return NextResponse.json({ ok: true, processed, quarantined, errorCount: errors.length, errors });
 }
 
 export const dynamic = "force-dynamic";

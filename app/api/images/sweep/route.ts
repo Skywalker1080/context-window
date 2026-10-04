@@ -89,14 +89,21 @@ export async function GET(req: Request) {
           token = listed.IsTruncated ? listed.NextContinuationToken : undefined;
         } while (token);
       }
-      // Delete in chunks of 1000 (S3 multi-object limit).
+      // Delete in chunks of 1000 (S3 multi-object limit). S3 reports
+      // per-key failures inside the response — only drop the row when
+      // every object is confirmed gone.
       for (let i = 0; i < keys.length; i += 1000) {
-        await s3.send(
+        const res = await s3.send(
           new DeleteObjectsCommand({
             Bucket: IMAGE_BUCKET,
             Delete: { Objects: keys.slice(i, i + 1000).map((Key) => ({ Key })) },
           })
         );
+        if (res.Errors?.length) {
+          throw new Error(
+            res.Errors.map((e) => e.Key ?? "?").join(", ") || "S3 delete failed"
+          );
+        }
       }
       const { error: delError } = await sb
         .from("links")

@@ -77,6 +77,10 @@ function sniffMime(head: Uint8Array): string | null {
 }
 
 async function fetchSafeImage(startUrl: string): Promise<Buffer> {
+  // Known limitation: DNS is resolved then fetch() re-resolves, leaving a
+  // narrow DNS-rebinding (TOCTOU) window. Acceptable at indie scale behind
+  // private-IP deny + redirect cap; revisit with fixed-IP pinning or a
+  // dedicated egress proxy if abuse appears.
   let current: string;
   try {
     const parsed = new URL(startUrl);
